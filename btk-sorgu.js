@@ -112,6 +112,8 @@ function parseHTML(html) {
     engelliMi: false,
     kararTarihi: null,
     kararNumarasi: null,
+    dosyaNumarasi: null,
+    dosyaTuru: null,
     mahkeme: null,
   };
 
@@ -139,13 +141,15 @@ function parseHTML(html) {
 
     // Karar bilgilerini çıkar
     const kararMatch = result.turkceAciklama.match(
-      /(\d{2}\/\d{2}\/\d{4}) tarihli ve ([\d\/]+ D\. İş) sayılı (.+?) kararıyla/
+      /(\d{2}\/\d{2}\/\d{4}) tarihli ve ((\d+\/\d+)\s+(D\. İş)) sayılı (.+?) kararıyla/
     );
 
     if (kararMatch) {
       result.kararTarihi = kararMatch[1];
       result.kararNumarasi = kararMatch[2];
-      result.mahkeme = kararMatch[3];
+      result.dosyaNumarasi = kararMatch[3];
+      result.dosyaTuru = kararMatch[4];
+      result.mahkeme = kararMatch[5];
     }
   }
 
@@ -556,11 +560,14 @@ function printResult(domain, result) {
     if (result.kararTarihi) {
       console.log(`📅 Karar Tarihi: ${result.kararTarihi}`);
     }
-    if (result.kararNumarasi) {
-      console.log(`📋 Karar Numarası: ${result.kararNumarasi}`);
+    if (result.dosyaNumarasi) {
+      console.log(`📋 Dosya Numarası: ${result.dosyaNumarasi}`);
+    }
+    if (result.dosyaTuru) {
+      console.log(`📂 Dosya Türü: ${result.dosyaTuru}`);
     }
     if (result.mahkeme) {
-      console.log(`⚖️  Mahkeme: ${result.mahkeme}`);
+      console.log(`⚖️ Mahkeme: ${result.mahkeme}`);
     }
 
     console.log('─'.repeat(60));
@@ -577,7 +584,7 @@ function printResult(domain, result) {
   } else {
     console.log('✅ Durum: ERİŞİLEBİLİR');
     console.log('─'.repeat(60));
-    console.log('ℹ️  Bu site hakkında herhangi bir engel kararı bulunmamaktadır.');
+    console.log('ℹ️ Bu site hakkında herhangi bir engel kararı bulunmamaktadır.');
   }
 
   console.log('═'.repeat(60) + '\n');
