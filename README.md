@@ -1,4 +1,4 @@
-# BTK Site Sorgulama Aracı v2.0.1
+# BTK Site Sorgulama Aracı v2.1.0
 
 Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfası](https://internet.btk.gov.tr/sitesorgu) üzerinden otomatik olarak sorgulayan Node.js aracı.
 
@@ -8,6 +8,8 @@ Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfas�
 - 📋 Tek veya çoklu site sorgulama
 - 📁 Dosyadan liste okuma
 - 📊 JSON formatında temiz çıktı desteği
+- ⏱️ Her sorgu için süre ölçümü
+- ⚡ Session cookie yeniden kullanımı (hızlı çoklu sorgu)
 - 🔄 Otomatik yeniden deneme (3x)
 - ⏱️ 30 saniye HTTP timeout
 - 🔀 HTTP redirect desteği
@@ -148,6 +150,7 @@ google.com
 ```text
 ════════════════════════════════════════════════════════════
 📌 Domain: discord.com
+⏱️ Sorgu Süresi: 2.58s
 ════════════════════════════════════════════════════════════
 🚫 Durum: ENGELLİ
 ────────────────────────────────────────────────────────────
@@ -172,6 +175,7 @@ google.com
 ```text
 ════════════════════════════════════════════════════════════
 📌 Domain: google.com
+⏱️ orgu Süresi: 1.58s
 ════════════════════════════════════════════════════════════
 ✅ Durum: ERİŞİLEBİLİR
 ────────────────────────────────────────────────────────────
@@ -186,6 +190,8 @@ google.com
   "domain": "discord.com",
   "timestamp": "2024-11-27T10:30:00.000Z",
   "status": true,
+  "queryDuration": 2580,
+  "queryDurationFormatted": "2.58s",
   "engelliMi": true,
   "kararTarihi": "09/10/2024",
   "kararNumarasi": "2024/12907 D. İş",
@@ -266,6 +272,14 @@ const CONFIG = {
 3. **CAPTCHA Çözme:** Resim base64'e çevrilip Gemini API'ye gönderilir
 4. **Sorgu Gönderme:** POST isteği ile site sorgulanır
 5. **Sonuç Parse:** HTML yanıtından engel bilgileri regex ile çıkarılır
+6. **Session Yeniden Kullanım:** Çoklu sorguda session cookie'leri saklanır ve sonraki sorgularda yeniden kullanılır (HTTP istek sayısı azalır)
+
+### Performans Optimizasyonları
+
+- **Session Reuse:** Çoklu sorgularda ilk sorgudan alınan session cookie'leri yeniden kullanılır
+- **Sorgu Süresi Ölçümü:** Her sorgu için toplam süre ölçülür ve gösterilir
+- İlk sorgu: ~2-3 saniye (session + CAPTCHA + sorgu)
+- Sonraki sorgular: ~1.5-2 saniye (sadece CAPTCHA + sorgu)
 
 ### API Endpoints
 

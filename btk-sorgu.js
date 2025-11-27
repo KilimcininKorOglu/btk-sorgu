@@ -1,5 +1,5 @@
 /**
- * BTK Site Sorgulama Script v2.0.1
+ * BTK Site Sorgulama Script v2.1.0
  * ==============================
  * Türkiye'de engelli siteleri BTK üzerinden sorgular.
  * Gemini API ile CAPTCHA otomatik çözümü yapar.
@@ -81,7 +81,7 @@ loadEnvFile();
 // ============================================================================
 
 // Versiyon
-const VERSION = '2.0.1';
+const VERSION = '2.1.0';
 
 // Global JSON output flag (argümanlardan ayarlanır)
 let JSON_OUTPUT = false;
