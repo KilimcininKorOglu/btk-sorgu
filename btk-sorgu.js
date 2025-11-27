@@ -690,7 +690,7 @@ function printResult(domain, result, duration = null) {
   log('\n' + '═'.repeat(60));
   log(`📌 Domain: ${domain}`);
   if (duration !== null) {
-    log(`⏱️  Sorgu Süresi: ${formatDuration(duration)}`);
+    log(`⏱️ Sorgu Süresi : ${formatDuration(duration)}`);
   }
   log('═'.repeat(60));
 
