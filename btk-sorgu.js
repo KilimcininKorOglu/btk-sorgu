@@ -463,16 +463,39 @@ async function solveCaptchaWithGemini(imageBuffer, apiKey) {
 
     if (response.statusCode !== 200) {
       const errorData = JSON.parse(response.data);
-      throw new Error(`Gemini API hatası: ${errorData.error?.message || response.statusCode}`);
+      const errorMsg = errorData.error?.message || `HTTP ${response.statusCode}`;
+      
+      // Spesifik hata mesajları
+      if (response.statusCode === 429) {
+        throw new Error(`Gemini API kota aşıldı: ${errorMsg}`);
+      } else if (response.statusCode === 401 || response.statusCode === 403) {
+        throw new Error(`Gemini API yetkilendirme hatası: ${errorMsg}`);
+      }
+      throw new Error(`Gemini API hatası: ${errorMsg}`);
     }
 
     const data = JSON.parse(response.data);
 
-    // Yanıtı parse et
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    // Güvenlik filtresi kontrolü
+    if (data.promptFeedback?.blockReason) {
+      throw new Error(`Gemini güvenlik filtresi: ${data.promptFeedback.blockReason}`);
+    }
+
+    // Yanıt kontrolü
+    const candidate = data.candidates?.[0];
+    if (!candidate) {
+      throw new Error('Gemini API boş yanıt döndü');
+    }
+
+    // finishReason kontrolü
+    if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+      throw new Error(`Gemini yanıt tamamlanamadı: ${candidate.finishReason}`);
+    }
+
+    const text = candidate.content?.parts?.[0]?.text;
 
     if (!text) {
-      throw new Error('Gemini API yanıt vermedi');
+      throw new Error('Gemini API metin yanıtı vermedi');
     }
 
     // Sadece alfanumerik karakterleri al (5-6 karakter) - CASE SENSITIVE!
