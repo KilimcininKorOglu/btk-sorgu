@@ -201,15 +201,16 @@ function parseHTML(html) {
     result.engelliMi = result.turkceAciklama.includes('engellenmiştir');
 
     // Karar bilgilerini çıkar
+    // Desteklenen dosya türleri: D. İş, E., K., Müt., vb.
     const kararMatch = result.turkceAciklama.match(
-      /(\d{2}\/\d{2}\/\d{4}) tarihli ve ((\d+\/\d+)\s+(D\. İş)) sayılı (.+?) kararıyla/
+      /(\d{2}\/\d{2}\/\d{4}) tarihli ve ((\d+\/\d+)\s+([A-Za-zİıÜüÖöÇçŞşĞğ.\s]+?)) sayılı (.+?) kararıyla/
     );
 
     if (kararMatch) {
       result.kararTarihi = kararMatch[1];
-      result.kararNumarasi = kararMatch[2];
+      result.kararNumarasi = kararMatch[2].trim();
       result.dosyaNumarasi = kararMatch[3];
-      result.dosyaTuru = kararMatch[4];
+      result.dosyaTuru = kararMatch[4].trim();
       result.mahkeme = kararMatch[5];
     }
   }
