@@ -441,10 +441,14 @@ async function solveCaptchaWithGemini(imageBuffer, apiKey) {
     }
   };
 
-  const url = `${CONFIG.GEMINI_API_URL}?key=${apiKey}`;
+  const url = CONFIG.GEMINI_API_URL;
 
   try {
-    const response = await httpsPostJSON(url, requestBody);
+    const response = await httpsPostJSON(url, requestBody, {
+      headers: {
+        'x-goog-api-key': apiKey
+      }
+    });
 
     if (response.statusCode !== 200) {
       const errorData = JSON.parse(response.data);
