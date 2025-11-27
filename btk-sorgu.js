@@ -287,10 +287,17 @@ function decompressResponse(buffer, encoding) {
 }
 
 /**
- * HTTPS GET isteği yapar
+ * HTTPS GET isteği yapar (redirect destekli)
  */
-function httpsGet(url, options = {}) {
+function httpsGet(url, options = {}, redirectCount = 0) {
+  const MAX_REDIRECTS = 5;
+  
   return new Promise((resolve, reject) => {
+    if (redirectCount > MAX_REDIRECTS) {
+      reject(new Error('Maksimum redirect sayısı aşıldı'));
+      return;
+    }
+
     const urlObj = new URL(url);
 
     // Accept-Encoding header'ını ayarla (gzip ve deflate destekle, br hariç)
@@ -306,6 +313,15 @@ function httpsGet(url, options = {}) {
     };
 
     const req = https.request(reqOptions, (res) => {
+      // Redirect handling (301, 302, 303, 307, 308)
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        const redirectUrl = new URL(res.headers.location, url).href;
+        httpsGet(redirectUrl, options, redirectCount + 1)
+          .then(resolve)
+          .catch(reject);
+        return;
+      }
+
       const chunks = [];
 
       res.on('data', chunk => chunks.push(chunk));
