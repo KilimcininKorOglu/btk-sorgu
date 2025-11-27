@@ -164,6 +164,16 @@ function cookiesToString(cookies) {
 }
 
 /**
+ * Domain adının geçerli olup olmadığını kontrol eder
+ */
+function isValidDomain(domain) {
+  if (!domain || typeof domain !== 'string') return false;
+  // Basit domain regex: en az bir nokta, geçerli karakterler
+  const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+  return domainRegex.test(domain);
+}
+
+/**
  * Basit HTML parser - cheerio olmadan
  */
 function parseHTML(html) {
@@ -736,6 +746,17 @@ async function main() {
     console.error('❌ Sorgulanacak domain belirtilmedi!');
     console.log('   Kullanım: node btk-sorgu.js <domain>');
     process.exit(1);
+  }
+
+  // Domain validasyonu
+  const invalidDomains = domains.filter(d => !isValidDomain(d));
+  if (invalidDomains.length > 0) {
+    invalidDomains.forEach(d => console.warn(`⚠️  Geçersiz domain atlandı: ${d}`));
+    domains = domains.filter(d => isValidDomain(d));
+    if (domains.length === 0) {
+      console.error('❌ Geçerli domain bulunamadı!');
+      process.exit(1);
+    }
   }
 
   // Gemini API key kontrolü (ZORUNLU)
