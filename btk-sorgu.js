@@ -83,12 +83,15 @@ loadEnvFile();
 // Varsayılan Gemini model adı
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 
+// Varsayılan User-Agent
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
 const CONFIG = {
   // BTK Ayarları
   BASE_URL: 'https://internet.btk.gov.tr/sitesorgu',
   CAPTCHA_PATH: '/secureimage/captcha.php',
   HEADERS: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    get 'User-Agent'() { return process.env.USER_AGENT || DEFAULT_USER_AGENT; },
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
     'Accept-Encoding': 'gzip, deflate, br',
