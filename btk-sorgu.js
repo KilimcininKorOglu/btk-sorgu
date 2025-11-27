@@ -579,11 +579,12 @@ async function getSessionCookies() {
 
 /**
  * CAPTCHA resmini indirir
+ * @param {Object} existingSession - Mevcut session cookie'leri (opsiyonel, yoksa yeni alınır)
  * @returns {Promise<{cookies: Object, imageBuffer: Buffer, captchaPath: string}>}
  */
-async function getCaptcha() {
-  // Önce session cookie al
-  const sessionCookies = await getSessionCookies();
+async function getCaptcha(existingSession = null) {
+  // Session cookie al (mevcut varsa kullan, yoksa yeni al)
+  const sessionCookies = existingSession || await getSessionCookies();
 
   const timestamp = generateTimestamp();
   const url = `${CONFIG.BASE_URL}${CONFIG.CAPTCHA_PATH}?_CAPTCHA=&t=${encodeURIComponent(timestamp)}`;
@@ -891,11 +892,13 @@ async function main() {
 
   const results = [];
   let retryCount = 0;
+  let sharedSession = null; // Session cookie'lerini sakla
 
   try {
     while (retryCount < CONFIG.MAX_RETRIES) {
-      // 1. CAPTCHA al
+      // 1. CAPTCHA al (ilk seferde session da alınır)
       const { cookies, imageBuffer } = await getCaptcha();
+      sharedSession = cookies; // Session'ı sakla
 
       let captchaCode;
 
@@ -945,15 +948,15 @@ async function main() {
       break;
     }
 
-    // 4. Kalan siteleri sorgula (her biri için yeni CAPTCHA gerekiyor)
+    // 4. Kalan siteleri sorgula (session'ı yeniden kullan, sadece yeni CAPTCHA al)
     for (let i = 1; i < domains.length; i++) {
       const domain = domains[i];
       let domainRetry = 0;
 
       while (domainRetry < CONFIG.MAX_RETRIES) {
         try {
-          // Her site için yeni session ve CAPTCHA al
-          const { cookies: newCookies, imageBuffer: newImage } = await getCaptcha();
+          // Mevcut session'ı kullanarak sadece yeni CAPTCHA al
+          const { cookies: newCookies, imageBuffer: newImage } = await getCaptcha(sharedSession);
 
           const newCaptchaCode = await solveCaptchaWithGemini(newImage, geminiApiKey);
 
@@ -964,11 +967,16 @@ async function main() {
             domainRetry++;
             if (domainRetry < CONFIG.MAX_RETRIES) {
               log(`⚠️  CAPTCHA hatalı, yeniden deneniyor (${domainRetry}/${CONFIG.MAX_RETRIES})...`);
+              // Session geçersiz olmuş olabilir, yeni session dene
+              sharedSession = null;
               await sleep(CONFIG.RETRY_DELAY);
               continue;
             }
             throw new Error('CAPTCHA çözümü başarısız');
           }
+
+          // Başarılı sorgu sonrası session'ı güncelle
+          sharedSession = newCookies;
 
           const result = parseHTML(html);
 
@@ -982,6 +990,8 @@ async function main() {
 
         } catch (error) {
           domainRetry++;
+          // Hata durumunda session'ı sıfırla, yeni denemelerde temiz başlasın
+          sharedSession = null;
           if (domainRetry >= CONFIG.MAX_RETRIES) {
             if (jsonOutput) {
               results.push(outputJSONError(domain, error.message));
