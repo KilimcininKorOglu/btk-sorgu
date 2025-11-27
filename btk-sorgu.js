@@ -664,11 +664,34 @@ function isCaptchaError(html) {
 }
 
 /**
- * Sonuçları güzel formatta yazdırır
+ * Süreyi okunabilir formata çevirir
+ * @param {number} ms - Milisaniye cinsinden süre
+ * @returns {string} - Formatlanmış süre (örn: "2.35s" veya "1m 5.2s")
  */
-function printResult(domain, result) {
+function formatDuration(ms) {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  } else if (ms < 60000) {
+    return `${(ms / 1000).toFixed(2)}s`;
+  } else {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = ((ms % 60000) / 1000).toFixed(1);
+    return `${minutes}m ${seconds}s`;
+  }
+}
+
+/**
+ * Sonuçları güzel formatta yazdırır
+ * @param {string} domain - Sorgulanan domain
+ * @param {Object} result - Sorgu sonucu
+ * @param {number} duration - Sorgu süresi (ms)
+ */
+function printResult(domain, result, duration = null) {
   log('\n' + '═'.repeat(60));
   log(`📌 Domain: ${domain}`);
+  if (duration !== null) {
+    log(`⏱️  Sorgu Süresi: ${formatDuration(duration)}`);
+  }
   log('═'.repeat(60));
 
   if (result.engelliMi) {
@@ -712,12 +735,16 @@ function printResult(domain, result) {
 
 /**
  * JSON formatında çıktı verir
+ * @param {string} domain - Sorgulanan domain
+ * @param {Object} result - Sorgu sonucu
+ * @param {number} duration - Sorgu süresi (ms)
  */
-function outputJSON(domain, result) {
+function outputJSON(domain, result, duration = null) {
   const output = {
     domain,
     timestamp: new Date().toISOString(),
     status: true,
+    ...(duration !== null && { queryDuration: duration, queryDurationFormatted: formatDuration(duration) }),
     ...result,
   };
 
@@ -893,9 +920,13 @@ async function main() {
   const results = [];
   let retryCount = 0;
   let sharedSession = null; // Session cookie'lerini sakla
+  let queryStartTime = null; // Sorgu başlangıç zamanı
 
   try {
     while (retryCount < CONFIG.MAX_RETRIES) {
+      // Sorgu süresini ölç (ilk site için)
+      queryStartTime = Date.now();
+
       // 1. CAPTCHA al (ilk seferde session da alınır)
       const { cookies, imageBuffer } = await getCaptcha();
       sharedSession = cookies; // Session'ı sakla
@@ -938,10 +969,11 @@ async function main() {
 
       // İlk sonucu işle
       const firstResult = parseHTML(firstHtml);
+      const firstDuration = Date.now() - queryStartTime;
       if (jsonOutput) {
-        results.push(outputJSON(firstDomain, firstResult));
+        results.push(outputJSON(firstDomain, firstResult, firstDuration));
       } else {
-        results.push(printResult(firstDomain, firstResult));
+        results.push(printResult(firstDomain, firstResult, firstDuration));
       }
 
       // Başarılı - döngüden çık
@@ -955,6 +987,9 @@ async function main() {
 
       while (domainRetry < CONFIG.MAX_RETRIES) {
         try {
+          // Sorgu süresini ölç
+          const domainStartTime = Date.now();
+
           // Mevcut session'ı kullanarak sadece yeni CAPTCHA al
           const { cookies: newCookies, imageBuffer: newImage } = await getCaptcha(sharedSession);
 
@@ -979,11 +1014,12 @@ async function main() {
           sharedSession = newCookies;
 
           const result = parseHTML(html);
+          const domainDuration = Date.now() - domainStartTime;
 
           if (jsonOutput) {
-            results.push(outputJSON(domain, result));
+            results.push(outputJSON(domain, result, domainDuration));
           } else {
-            results.push(printResult(domain, result));
+            results.push(printResult(domain, result, domainDuration));
           }
 
           break; // Bu domain için başarılı
