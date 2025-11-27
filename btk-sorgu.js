@@ -119,6 +119,9 @@ const CONFIG = {
   // Yeniden deneme ayarları
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000,
+  
+  // HTTP timeout (ms)
+  REQUEST_TIMEOUT: 30000,
 };
 
 // ============================================================================
@@ -343,6 +346,10 @@ function httpsGet(url, options = {}, redirectCount = 0) {
     });
 
     req.on('error', reject);
+    req.setTimeout(CONFIG.REQUEST_TIMEOUT, () => {
+      req.destroy();
+      reject(new Error(`İstek zaman aşımı (${CONFIG.REQUEST_TIMEOUT / 1000}s)`));
+    });
     req.end();
   });
 }
@@ -382,6 +389,10 @@ function httpsPost(url, body, options = {}) {
     });
 
     req.on('error', reject);
+    req.setTimeout(CONFIG.REQUEST_TIMEOUT, () => {
+      req.destroy();
+      reject(new Error(`İstek zaman aşımı (${CONFIG.REQUEST_TIMEOUT / 1000}s)`));
+    });
     req.write(postData);
     req.end();
   });
@@ -422,6 +433,10 @@ function httpsPostJSON(url, jsonBody, options = {}) {
     });
 
     req.on('error', reject);
+    req.setTimeout(CONFIG.REQUEST_TIMEOUT, () => {
+      req.destroy();
+      reject(new Error(`İstek zaman aşımı (${CONFIG.REQUEST_TIMEOUT / 1000}s)`));
+    });
     req.write(postData);
     req.end();
   });
