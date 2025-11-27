@@ -499,7 +499,7 @@ async function solveCaptchaWithGemini(imageBuffer, apiKey) {
       temperature: 0.1,
       topK: 1,
       topP: 1,
-      maxOutputTokens: 10,
+      maxOutputTokens: 32,
     }
   };
 
