@@ -17,7 +17,7 @@ Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfas�
 ### Gereksinimler
 
 - Node.js 16+
-- Google Gemini API anahtarı (otomatik mod için)
+- Google Gemini API anahtarı (**zorunlu**)
 
 ### 1. Dosyaları İndir
 
@@ -26,7 +26,7 @@ git clone <repo-url>
 cd btk-sorgu
 ```
 
-### 2. Gemini API Anahtarı Al (Otomatik Mod İçin)
+### 2. Gemini API Anahtarı Al
 
 1. [Google AI Studio](https://aistudio.google.com/app/apikey) adresine gidin
 2. Google hesabınızla giriş yapın
@@ -66,10 +66,7 @@ setx GEMINI_API_KEY "AIzaSy...your_api_key_here"
 ### Temel Kullanım
 
 ```bash
-# Otomatik mod (Gemini AI ile CAPTCHA çözümü)
-node btk-sorgu.js --auto discord.com
-
-# Manuel mod (CAPTCHA kendin girersin)
+# Tek site sorgula
 node btk-sorgu.js discord.com
 ```
 
@@ -77,20 +74,20 @@ node btk-sorgu.js discord.com
 
 ```bash
 # Birden fazla site
-node btk-sorgu.js --auto discord.com pornhub.com google.com twitter.com
+node btk-sorgu.js discord.com pornhub.com google.com twitter.com
 
 # Dosyadan liste okuma
-node btk-sorgu.js --auto --liste sites.txt
+node btk-sorgu.js --liste sites.txt
 ```
 
 ### JSON Çıktı
 
 ```bash
 # JSON formatında çıktı
-node btk-sorgu.js --auto --json discord.com
+node btk-sorgu.js --json discord.com
 
 # Dosyaya kaydet
-node btk-sorgu.js --auto --json discord.com > sonuc.json
+node btk-sorgu.js --json discord.com > sonuc.json
 ```
 
 ### Yardım
@@ -105,7 +102,6 @@ node btk-sorgu.js --help
 
 | Seçenek | Açıklama |
 |---------|----------|
-| `--auto` | Gemini AI ile otomatik CAPTCHA çözümü |
 | `--liste <dosya>` | Dosyadan site listesi oku |
 | `--json` | JSON formatında çıktı |
 | `--help`, `-h` | Yardım mesajını göster |
@@ -238,8 +234,7 @@ export GEMINI_API_KEY=your_api_key
 ### CAPTCHA sürekli hatalı
 
 - Gemini bazen CAPTCHA'yı yanlış okuyabilir
-- Script otomatik olarak yeniden dener
-- Manuel mod kullanabilirsiniz: `node btk-sorgu.js discord.com`
+- Script otomatik olarak 3 kez yeniden dener
 
 ---
 
@@ -249,9 +244,7 @@ export GEMINI_API_KEY=your_api_key
 
 1. **Session Başlatma:** BTK ana sayfasına GET isteği yapılır, session cookie'leri alınır
 2. **CAPTCHA İndirme:** Session cookie'leri ile CAPTCHA resmi indirilir
-3. **CAPTCHA Çözme:**
-   - Otomatik mod: Resim base64'e çevrilip Gemini API'ye gönderilir
-   - Manuel mod: Resim açılır, kullanıcı kodu girer
+3. **CAPTCHA Çözme:** Resim base64'e çevrilip Gemini API'ye gönderilir
 4. **Sorgu Gönderme:** POST isteği ile site sorgulanır
 5. **Sonuç Parse:** HTML yanıtından engel bilgileri çıkarılır
 

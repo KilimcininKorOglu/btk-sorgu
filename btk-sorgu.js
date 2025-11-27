@@ -2,16 +2,15 @@
  * BTK Site Sorgulama Script v2.0
  * ==============================
  * Türkiye'de engelli siteleri BTK üzerinden sorgular.
- * Gemini API ile CAPTCHA otomatik çözümü destekler.
+ * Gemini API ile CAPTCHA otomatik çözümü yapar.
  * 
  * Kullanım:
- *   node btk-sorgu.js <domain>                        Manuel CAPTCHA
- *   node btk-sorgu.js --auto <domain>                 Gemini ile otomatik CAPTCHA
- *   node btk-sorgu.js --auto --liste sites.txt       Liste ile otomatik
- *   node btk-sorgu.js --json <domain>                 JSON formatında çıktı
+ *   node btk-sorgu.js <domain>                  Tek site sorgula
+ *   node btk-sorgu.js --liste sites.txt         Liste ile sorgula
+ *   node btk-sorgu.js --json <domain>           JSON formatında çıktı
  * 
  * Ortam Değişkenleri:
- *   GEMINI_API_KEY    Google Gemini API anahtarı (otomatik mod için gerekli)
+ *   GEMINI_API_KEY    Google Gemini API anahtarı (ZORUNLU)
  * 
  * API Anahtarı Alma:
  *   https://aistudio.google.com/app/apikey
@@ -647,19 +646,18 @@ Kullanım:
   node btk-sorgu.js [seçenekler] <domain>
 
 Seçenekler:
-  --auto              Gemini API ile otomatik CAPTCHA çözümü
   --liste <dosya>     Dosyadan site listesi oku
   --json              JSON formatında çıktı
   --help, -h          Bu yardım mesajını göster
 
 Örnekler:
   node btk-sorgu.js discord.com
-  node btk-sorgu.js --auto discord.com
-  node btk-sorgu.js --auto --liste sites.txt
+  node btk-sorgu.js discord.com twitter.com google.com
+  node btk-sorgu.js --liste sites.txt
   node btk-sorgu.js --json twitter.com
 
 Ortam Değişkenleri:
-  GEMINI_API_KEY      Google Gemini API anahtarı (--auto için gerekli)
+  GEMINI_API_KEY      Google Gemini API anahtarı (ZORUNLU)
 
 API Anahtarı Alma:
   1. https://aistudio.google.com/app/apikey adresine gidin
@@ -693,7 +691,6 @@ async function main() {
 
   let domains = [];
   let jsonOutput = false;
-  let autoMode = false;
 
   // Argümanları işle
   for (let i = 0; i < args.length; i++) {
@@ -710,8 +707,6 @@ async function main() {
       i++;
     } else if (args[i] === '--json') {
       jsonOutput = true;
-    } else if (args[i] === '--auto') {
-      autoMode = true;
     } else if (!args[i].startsWith('--')) {
       domains.push(args[i]);
     }
@@ -719,13 +714,13 @@ async function main() {
 
   if (domains.length === 0) {
     console.error('❌ Sorgulanacak domain belirtilmedi!');
-    console.log('   Kullanım: node btk-sorgu.js [--auto] <domain>');
+    console.log('   Kullanım: node btk-sorgu.js <domain>');
     process.exit(1);
   }
 
-  // Gemini API key kontrolü (auto mod için)
+  // Gemini API key kontrolü (ZORUNLU)
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  if (autoMode && !geminiApiKey) {
+  if (!geminiApiKey) {
     console.error('❌ GEMINI_API_KEY ortam değişkeni ayarlanmamış!');
     console.log('');
     console.log('   API anahtarı almak için:');
@@ -738,8 +733,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`📋 Sorgulanacak ${domains.length} site: ${domains.join(', ')}`);
-  console.log(`🔧 Mod: ${autoMode ? 'Otomatik (Gemini AI)' : 'Manuel'}\n`);
+  console.log(`📋 Sorgulanacak ${domains.length} site: ${domains.join(', ')}\n`);
 
   const results = [];
   let retryCount = 0;
@@ -751,31 +745,18 @@ async function main() {
 
       let captchaCode;
 
-      if (autoMode) {
-        // 2a. Gemini ile otomatik çöz
-        try {
-          captchaCode = await solveCaptchaWithGemini(imageBuffer, geminiApiKey);
-        } catch (error) {
-          console.error(`❌ CAPTCHA çözülemedi: ${error.message}`);
-          retryCount++;
-          if (retryCount < CONFIG.MAX_RETRIES) {
-            console.log(`🔄 Yeniden deneniyor (${retryCount}/${CONFIG.MAX_RETRIES})...`);
-            await sleep(CONFIG.RETRY_DELAY);
-            continue;
-          }
-          throw error;
+      // Gemini ile otomatik çöz
+      try {
+        captchaCode = await solveCaptchaWithGemini(imageBuffer, geminiApiKey);
+      } catch (error) {
+        console.error(`❌ CAPTCHA çözülemedi: ${error.message}`);
+        retryCount++;
+        if (retryCount < CONFIG.MAX_RETRIES) {
+          console.log(`🔄 Yeniden deneniyor (${retryCount}/${CONFIG.MAX_RETRIES})...`);
+          await sleep(CONFIG.RETRY_DELAY);
+          continue;
         }
-      } else {
-        // 2b. Manuel CAPTCHA girişi
-        await openCaptchaFile(captchaPath);
-        console.log('\n👀 CAPTCHA resmi açıldı (veya yukarıdaki dosya yolundan açın)');
-        captchaCode = await prompt('🔑 CAPTCHA kodunu girin (6 karakter): ');
-
-        if (!captchaCode || captchaCode.length !== 6) {
-          console.error('❌ Geçersiz CAPTCHA kodu! 6 karakter olmalıdır.');
-          process.exit(1);
-        }
-        captchaCode = captchaCode.toUpperCase();
+        throw error;
       }
 
       // 3. İlk siteyi sorgula (CAPTCHA doğrulama)
@@ -786,13 +767,10 @@ async function main() {
       if (isCaptchaError(firstHtml)) {
         console.log('⚠️  CAPTCHA kodu hatalı!');
         retryCount++;
-        if (retryCount < CONFIG.MAX_RETRIES && autoMode) {
+        if (retryCount < CONFIG.MAX_RETRIES) {
           console.log(`🔄 Yeni CAPTCHA ile deneniyor (${retryCount}/${CONFIG.MAX_RETRIES})...`);
           await sleep(CONFIG.RETRY_DELAY);
           continue;
-        } else if (!autoMode) {
-          console.log('   Lütfen tekrar deneyin.');
-          process.exit(1);
         }
         throw new Error('CAPTCHA çözümü başarısız oldu');
       }
@@ -819,21 +797,14 @@ async function main() {
           // Her site için yeni session ve CAPTCHA al
           const { cookies: newCookies, imageBuffer: newImage } = await getCaptcha();
 
-          let newCaptchaCode;
-          if (autoMode) {
-            newCaptchaCode = await solveCaptchaWithGemini(newImage, geminiApiKey);
-          } else {
-            const captchaPath = path.join(process.cwd(), CONFIG.CAPTCHA_FILE);
-            await openCaptchaFile(captchaPath);
-            newCaptchaCode = await prompt(`🔑 ${domain} için CAPTCHA kodunu girin: `);
-          }
+          const newCaptchaCode = await solveCaptchaWithGemini(newImage, geminiApiKey);
 
           const html = await sorgulaSite(domain, newCaptchaCode, newCookies);
 
           // CAPTCHA hatalı mı?
           if (isCaptchaError(html)) {
             domainRetry++;
-            if (domainRetry < CONFIG.MAX_RETRIES && autoMode) {
+            if (domainRetry < CONFIG.MAX_RETRIES) {
               console.log(`⚠️  CAPTCHA hatalı, yeniden deneniyor (${domainRetry}/${CONFIG.MAX_RETRIES})...`);
               await sleep(CONFIG.RETRY_DELAY);
               continue;
@@ -855,7 +826,7 @@ async function main() {
           domainRetry++;
           if (domainRetry >= CONFIG.MAX_RETRIES) {
             console.error(`❌ ${domain} sorgulanırken hata: ${error.message}`);
-          } else if (autoMode) {
+          } else {
             console.log(`🔄 ${domain} için yeniden deneniyor...`);
             await sleep(CONFIG.RETRY_DELAY);
           }
