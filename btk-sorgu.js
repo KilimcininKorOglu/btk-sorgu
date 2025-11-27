@@ -728,7 +728,23 @@ function outputJSON(domain, result) {
   const output = {
     domain,
     timestamp: new Date().toISOString(),
+    status: true,
     ...result,
+  };
+
+  console.log(JSON.stringify(output, null, 2));
+  return output;
+}
+
+/**
+ * JSON formatında hata çıktısı verir
+ */
+function outputJSONError(domain, message) {
+  const output = {
+    domain: domain || null,
+    timestamp: new Date().toISOString(),
+    status: false,
+    error: message,
   };
 
   console.log(JSON.stringify(output, null, 2));
@@ -814,7 +830,11 @@ async function main() {
     if (args[i] === '--liste' && args[i + 1]) {
       const listFile = args[i + 1];
       if (!fs.existsSync(listFile)) {
-        console.error(`❌ Dosya bulunamadı: ${listFile}`);
+        if (JSON_OUTPUT) {
+          outputJSONError(null, `Dosya bulunamadı: ${listFile}`);
+        } else {
+          console.error(`❌ Dosya bulunamadı: ${listFile}`);
+        }
         process.exit(1);
       }
       const content = fs.readFileSync(listFile, 'utf-8');
@@ -830,18 +850,30 @@ async function main() {
   }
 
   if (domains.length === 0) {
-    console.error('❌ Sorgulanacak domain belirtilmedi!');
-    console.log('   Kullanım: node btk-sorgu.js <domain>');
+    if (JSON_OUTPUT) {
+      outputJSONError(null, 'Sorgulanacak domain belirtilmedi');
+    } else {
+      console.error('❌ Sorgulanacak domain belirtilmedi!');
+      console.log('   Kullanım: node btk-sorgu.js <domain>');
+    }
     process.exit(1);
   }
 
   // Domain validasyonu
   const invalidDomains = domains.filter(d => !isValidDomain(d));
   if (invalidDomains.length > 0) {
-    invalidDomains.forEach(d => console.warn(`⚠️  Geçersiz domain atlandı: ${d}`));
+    if (JSON_OUTPUT) {
+      invalidDomains.forEach(d => log(`Geçersiz domain atlandı: ${d}`));
+    } else {
+      invalidDomains.forEach(d => console.warn(`⚠️  Geçersiz domain atlandı: ${d}`));
+    }
     domains = domains.filter(d => isValidDomain(d));
     if (domains.length === 0) {
-      console.error('❌ Geçerli domain bulunamadı!');
+      if (JSON_OUTPUT) {
+        outputJSONError(null, 'Geçerli domain bulunamadı');
+      } else {
+        console.error('❌ Geçerli domain bulunamadı!');
+      }
       process.exit(1);
     }
   }
@@ -849,16 +881,20 @@ async function main() {
   // Gemini API key kontrolü (ZORUNLU)
   const geminiApiKey = process.env.GEMINI_API_KEY;
   if (!geminiApiKey) {
-    console.error('❌ GEMINI_API_KEY ayarlanmamış!');
-    console.log('');
-    console.log('   Seçenek 1: .env dosyası oluşturun');
-    console.log('   GEMINI_API_KEY=your_api_key');
-    console.log('');
-    console.log('   Seçenek 2: Ortam değişkeni ayarlayın');
-    console.log('   Windows: set GEMINI_API_KEY=your_api_key');
-    console.log('   Linux/Mac: export GEMINI_API_KEY=your_api_key');
-    console.log('');
-    console.log('   API anahtarı almak için: https://aistudio.google.com/app/apikey');
+    if (JSON_OUTPUT) {
+      outputJSONError(null, 'GEMINI_API_KEY ayarlanmamış');
+    } else {
+      console.error('❌ GEMINI_API_KEY ayarlanmamış!');
+      console.log('');
+      console.log('   Seçenek 1: .env dosyası oluşturun');
+      console.log('   GEMINI_API_KEY=your_api_key');
+      console.log('');
+      console.log('   Seçenek 2: Ortam değişkeni ayarlayın');
+      console.log('   Windows: set GEMINI_API_KEY=your_api_key');
+      console.log('   Linux/Mac: export GEMINI_API_KEY=your_api_key');
+      console.log('');
+      console.log('   API anahtarı almak için: https://aistudio.google.com/app/apikey');
+    }
     process.exit(1);
   }
 
@@ -879,7 +915,11 @@ async function main() {
       try {
         captchaCode = await solveCaptchaWithGemini(imageBuffer, geminiApiKey);
       } catch (error) {
-        console.error(`❌ CAPTCHA çözülemedi: ${error.message}`);
+        if (JSON_OUTPUT) {
+          log(`CAPTCHA çözülemedi: ${error.message}`);
+        } else {
+          console.error(`❌ CAPTCHA çözülemedi: ${error.message}`);
+        }
         retryCount++;
         if (retryCount < CONFIG.MAX_RETRIES) {
           log(`🔄 Yeniden deneniyor (${retryCount}/${CONFIG.MAX_RETRIES})...`);
@@ -955,7 +995,11 @@ async function main() {
         } catch (error) {
           domainRetry++;
           if (domainRetry >= CONFIG.MAX_RETRIES) {
-            console.error(`❌ ${domain} sorgulanırken hata: ${error.message}`);
+            if (jsonOutput) {
+              results.push(outputJSONError(domain, error.message));
+            } else {
+              console.error(`❌ ${domain} sorgulanırken hata: ${error.message}`);
+            }
           } else {
             log(`🔄 ${domain} için yeniden deneniyor...`);
             await sleep(CONFIG.RETRY_DELAY);
@@ -987,7 +1031,11 @@ async function main() {
     }
 
   } catch (error) {
-    console.error(`\n❌ Hata: ${error.message}`);
+    if (JSON_OUTPUT) {
+      outputJSONError(null, error.message);
+    } else {
+      console.error(`\n❌ Hata: ${error.message}`);
+    }
     process.exit(1);
   } finally {
     // CAPTCHA dosyasını her durumda temizle
@@ -1007,6 +1055,10 @@ async function main() {
 
 // Programı çalıştır
 main().catch(error => {
-  console.error(`\n❌ Beklenmeyen hata: ${error.message}`);
+  if (JSON_OUTPUT) {
+    outputJSONError(null, error.message);
+  } else {
+    console.error(`\n❌ Beklenmeyen hata: ${error.message}`);
+  }
   process.exit(1);
 });
