@@ -83,6 +83,20 @@ loadEnvFile();
 // Versiyon
 const VERSION = '2.0.1';
 
+// Global JSON output flag (argümanlardan ayarlanır)
+let JSON_OUTPUT = false;
+
+/**
+ * Log fonksiyonu - JSON modunda stderr'e, normal modda stdout'a yazar
+ */
+function log(message) {
+  if (JSON_OUTPUT) {
+    console.error(message);
+  } else {
+    console.log(message);
+  }
+}
+
 // Varsayılan Gemini model adı
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -459,7 +473,7 @@ function httpsPostJSON(url, jsonBody, options = {}) {
  * @returns {Promise<string>} - Çözülmüş CAPTCHA kodu
  */
 async function solveCaptchaWithGemini(imageBuffer, apiKey) {
-  console.log('🤖 Gemini API ile CAPTCHA çözülüyor...');
+  log('🤖 Gemini API ile CAPTCHA çözülüyor...');
 
   // Base64'e çevir
   const base64Image = imageBuffer.toString('base64');
@@ -542,7 +556,7 @@ async function solveCaptchaWithGemini(imageBuffer, apiKey) {
       throw new Error(`Geçersiz CAPTCHA çıktısı: "${text}" -> "${captchaCode}" (${captchaCode.length} karakter)`);
     }
 
-    console.log(`✅ CAPTCHA çözüldü: ${captchaCode}`);
+    log(`✅ CAPTCHA çözüldü: ${captchaCode}`);
     return captchaCode;
 
   } catch (error) {
@@ -561,7 +575,7 @@ async function solveCaptchaWithGemini(imageBuffer, apiKey) {
  * Ana sayfadan session cookie alır
  */
 async function getSessionCookies() {
-  console.log('🔗 Session başlatılıyor...');
+  log('🔗 Session başlatılıyor...');
 
   const response = await httpsGet(`${CONFIG.BASE_URL}/`);
 
@@ -570,7 +584,7 @@ async function getSessionCookies() {
   }
 
   const cookies = parseCookies(response.headers['set-cookie']);
-  console.log(`✅ Session alındı: ${Object.keys(cookies).length} cookie`);
+  log(`✅ Session alındı: ${Object.keys(cookies).length} cookie`);
 
   return cookies;
 }
@@ -586,7 +600,7 @@ async function getCaptcha() {
   const timestamp = generateTimestamp();
   const url = `${CONFIG.BASE_URL}${CONFIG.CAPTCHA_PATH}?_CAPTCHA=&t=${encodeURIComponent(timestamp)}`;
 
-  console.log('📥 CAPTCHA indiriliyor...');
+  log('📥 CAPTCHA indiriliyor...');
 
   const response = await httpsGet(url, {
     headers: {
@@ -612,7 +626,7 @@ async function getCaptcha() {
   const captchaPath = path.join(process.cwd(), CONFIG.CAPTCHA_FILE);
   fs.writeFileSync(captchaPath, response.data);
 
-  console.log(`✅ CAPTCHA kaydedildi: ${captchaPath} (${response.data.length} bytes)`);
+  log(`✅ CAPTCHA kaydedildi: ${captchaPath} (${response.data.length} bytes)`);
 
   return {
     cookies,
@@ -625,7 +639,7 @@ async function getCaptcha() {
  * Site sorgulama isteği gönderir
  */
 async function sorgulaSite(domain, captchaCode, cookies) {
-  console.log(`\n🔍 Sorgulanıyor: ${domain}`);
+  log(`\n🔍 Sorgulanıyor: ${domain}`);
 
   const formData = {
     deger: domain,
@@ -664,45 +678,45 @@ function isCaptchaError(html) {
  * Sonuçları güzel formatta yazdırır
  */
 function printResult(domain, result) {
-  console.log('\n' + '═'.repeat(60));
-  console.log(`📌 Domain: ${domain}`);
-  console.log('═'.repeat(60));
+  log('\n' + '═'.repeat(60));
+  log(`📌 Domain: ${domain}`);
+  log('═'.repeat(60));
 
   if (result.engelliMi) {
-    console.log('🚫 Durum: ENGELLİ');
-    console.log('─'.repeat(60));
+    log('🚫 Durum: ENGELLİ');
+    log('─'.repeat(60));
 
     if (result.kararTarihi) {
-      console.log(`📅 Karar Tarihi: ${result.kararTarihi}`);
+      log(`📅 Karar Tarihi: ${result.kararTarihi}`);
     }
     if (result.dosyaNumarasi) {
-      console.log(`📋 Dosya Numarası: ${result.dosyaNumarasi}`);
+      log(`📋 Dosya Numarası: ${result.dosyaNumarasi}`);
     }
     if (result.dosyaTuru) {
-      console.log(`📂 Dosya Türü: ${result.dosyaTuru}`);
+      log(`📂 Dosya Türü: ${result.dosyaTuru}`);
     }
     if (result.mahkeme) {
-      console.log(`⚖️ Mahkeme: ${result.mahkeme}`);
+      log(`⚖️ Mahkeme: ${result.mahkeme}`);
     }
 
-    console.log('─'.repeat(60));
+    log('─'.repeat(60));
 
     if (result.turkceAciklama) {
-      console.log('\n📝 Türkçe Açıklama:');
-      console.log(`   ${result.turkceAciklama}`);
+      log('\n📝 Türkçe Açıklama:');
+      log(`   ${result.turkceAciklama}`);
     }
 
     if (result.ingilizceAciklama) {
-      console.log('\n📝 English Description:');
-      console.log(`   ${result.ingilizceAciklama}`);
+      log('\n📝 English Description:');
+      log(`   ${result.ingilizceAciklama}`);
     }
   } else {
-    console.log('✅ Durum: ERİŞİLEBİLİR');
-    console.log('─'.repeat(60));
-    console.log('ℹ️ Bu site hakkında herhangi bir engel kararı bulunmamaktadır.');
+    log('✅ Durum: ERİŞİLEBİLİR');
+    log('─'.repeat(60));
+    log('ℹ️ Bu site hakkında herhangi bir engel kararı bulunmamaktadır.');
   }
 
-  console.log('═'.repeat(60) + '\n');
+  log('═'.repeat(60) + '\n');
 
   return result;
 }
@@ -779,7 +793,7 @@ async function main() {
     process.exit(args.length === 0 ? 1 : 0);
   }
 
-  console.log(`
+  log(`
 ╔════════════════════════════════════════════════════════════╗
 ║           BTK Site Sorgulama Aracı v2.0                    ║
 ║           https://internet.btk.gov.tr/sitesorgu            ║
@@ -788,6 +802,12 @@ async function main() {
 
   let domains = [];
   let jsonOutput = false;
+
+  // Önce --json flag'ini kontrol et (log fonksiyonu için)
+  if (args.includes('--json')) {
+    jsonOutput = true;
+    JSON_OUTPUT = true;
+  }
 
   // Argümanları işle
   for (let i = 0; i < args.length; i++) {
@@ -803,7 +823,7 @@ async function main() {
         .filter(line => line && !line.startsWith('#'));
       i++;
     } else if (args[i] === '--json') {
-      jsonOutput = true;
+      // Zaten yukarıda işlendi
     } else if (!args[i].startsWith('--')) {
       domains.push(args[i]);
     }
@@ -842,8 +862,8 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`📋 Sorgulanacak ${domains.length} site: ${domains.join(', ')}`);
-  console.log(`🤖 Model: ${CONFIG.GEMINI_MODEL}\n`);
+  log(`📋 Sorgulanacak ${domains.length} site: ${domains.join(', ')}`);
+  log(`🤖 Model: ${CONFIG.GEMINI_MODEL}\n`);
 
   const results = [];
   let retryCount = 0;
@@ -862,7 +882,7 @@ async function main() {
         console.error(`❌ CAPTCHA çözülemedi: ${error.message}`);
         retryCount++;
         if (retryCount < CONFIG.MAX_RETRIES) {
-          console.log(`🔄 Yeniden deneniyor (${retryCount}/${CONFIG.MAX_RETRIES})...`);
+          log(`🔄 Yeniden deneniyor (${retryCount}/${CONFIG.MAX_RETRIES})...`);
           await sleep(CONFIG.RETRY_DELAY);
           continue;
         }
@@ -875,10 +895,10 @@ async function main() {
 
       // CAPTCHA hatalı mı kontrol et
       if (isCaptchaError(firstHtml)) {
-        console.log('⚠️  CAPTCHA kodu hatalı!');
+        log('⚠️  CAPTCHA kodu hatalı!');
         retryCount++;
         if (retryCount < CONFIG.MAX_RETRIES) {
-          console.log(`🔄 Yeni CAPTCHA ile deneniyor (${retryCount}/${CONFIG.MAX_RETRIES})...`);
+          log(`🔄 Yeni CAPTCHA ile deneniyor (${retryCount}/${CONFIG.MAX_RETRIES})...`);
           await sleep(CONFIG.RETRY_DELAY);
           continue;
         }
@@ -915,7 +935,7 @@ async function main() {
           if (isCaptchaError(html)) {
             domainRetry++;
             if (domainRetry < CONFIG.MAX_RETRIES) {
-              console.log(`⚠️  CAPTCHA hatalı, yeniden deneniyor (${domainRetry}/${CONFIG.MAX_RETRIES})...`);
+              log(`⚠️  CAPTCHA hatalı, yeniden deneniyor (${domainRetry}/${CONFIG.MAX_RETRIES})...`);
               await sleep(CONFIG.RETRY_DELAY);
               continue;
             }
@@ -937,7 +957,7 @@ async function main() {
           if (domainRetry >= CONFIG.MAX_RETRIES) {
             console.error(`❌ ${domain} sorgulanırken hata: ${error.message}`);
           } else {
-            console.log(`🔄 ${domain} için yeniden deneniyor...`);
+            log(`🔄 ${domain} için yeniden deneniyor...`);
             await sleep(CONFIG.RETRY_DELAY);
           }
         }
@@ -951,19 +971,19 @@ async function main() {
 
     // 5. Sonuç özeti
     if (!jsonOutput && domains.length > 1) {
-      console.log('\n📊 ÖZET');
-      console.log('═'.repeat(60));
+      log('\n📊 ÖZET');
+      log('═'.repeat(60));
 
       const blocked = results.filter(r => r?.engelliMi).length;
       const accessible = results.filter(r => r && !r.engelliMi).length;
       const failed = domains.length - results.length;
 
-      console.log(`   🚫 Engelli: ${blocked}`);
-      console.log(`   ✅ Erişilebilir: ${accessible}`);
+      log(`   🚫 Engelli: ${blocked}`);
+      log(`   ✅ Erişilebilir: ${accessible}`);
       if (failed > 0) {
-        console.log(`   ❓ Hatalı: ${failed}`);
+        log(`   ❓ Hatalı: ${failed}`);
       }
-      console.log('═'.repeat(60));
+      log('═'.repeat(60));
     }
 
   } catch (error) {
@@ -976,7 +996,7 @@ async function main() {
       try {
         fs.unlinkSync(captchaPath);
         if (!jsonOutput) {
-          console.log('\n🧹 CAPTCHA dosyası temizlendi.');
+          log('\n🧹 CAPTCHA dosyası temizlendi.');
         }
       } catch (e) {
         // Temizleme hatası kritik değil, sessizce devam et
