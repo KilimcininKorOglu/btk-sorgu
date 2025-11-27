@@ -80,6 +80,9 @@ loadEnvFile();
 // YAPILANDIRMA
 // ============================================================================
 
+// Versiyon
+const VERSION = '2.0.1';
+
 // Varsayılan Gemini model adı
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -734,6 +737,7 @@ Kullanım:
 Seçenekler:
   --liste <dosya>     Dosyadan site listesi oku
   --json              JSON formatında çıktı
+  --version, -v       Versiyon bilgisini göster
   --help, -h          Bu yardım mesajını göster
 
 Örnekler:
@@ -762,6 +766,12 @@ API Anahtarı Alma:
 async function main() {
   // Komut satırı argümanlarını parse et
   const args = process.argv.slice(2);
+
+  // Versiyon kontrolü
+  if (args.includes('--version') || args.includes('-v')) {
+    console.log(`BTK Site Sorgulama Aracı v${VERSION}`);
+    process.exit(0);
+  }
 
   // Yardım kontrolü
   if (args.includes('--help') || args.includes('-h') || args.length === 0) {
