@@ -33,31 +33,48 @@ cd btk-sorgu
 3. **"Create API Key"** butonuna tıklayın
 4. API anahtarını kopyalayın
 
-### 3. Ortam Değişkenini Ayarla
+### 3. Ortam Değişkenlerini Ayarla
 
-**Windows (CMD):**
+**Seçenek 1: `.env` Dosyası (Önerilen)**
+
+Proje klasöründe `.env` dosyası oluşturun:
+
+```env
+GEMINI_API_KEY=AIzaSy...your_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+> 💡 `.env.example` dosyasını `.env` olarak kopyalayabilirsiniz.
+
+**Seçenek 2: Sistem Ortam Değişkenleri**
+
+Windows (CMD):
 
 ```cmd
 set GEMINI_API_KEY=AIzaSy...your_api_key_here
+set GEMINI_MODEL=gemini-2.5-flash
 ```
 
-**Windows (PowerShell):**
+Windows (PowerShell):
 
 ```powershell
 $env:GEMINI_API_KEY="AIzaSy...your_api_key_here"
+$env:GEMINI_MODEL="gemini-2.5-flash"
 ```
 
-**Linux/macOS:**
+Linux/macOS:
 
 ```bash
 export GEMINI_API_KEY=AIzaSy...your_api_key_here
+export GEMINI_MODEL=gemini-2.5-flash
 ```
 
-**Kalıcı Ayar (Windows):**
+### Ortam Değişkenleri
 
-```cmd
-setx GEMINI_API_KEY "AIzaSy...your_api_key_here"
-```
+| Değişken | Zorunlu | Varsayılan | Açıklama |
+|----------|---------|------------|----------|
+| `GEMINI_API_KEY` | Evet | - | Google Gemini API anahtarı |
+| `GEMINI_MODEL` | Hayır | `gemini-2.5-flash` | Kullanılacak Gemini modeli |
 
 ---
 
@@ -112,7 +129,7 @@ node btk-sorgu.js --help
 
 `sites.txt` örneği:
 
-```
+```text
 # Yorum satırları # ile başlar
 discord.com
 pornhub.com
@@ -133,16 +150,17 @@ google.com
 🚫 Durum: ENGELLİ
 ────────────────────────────────────────────────────────────
 📅 Karar Tarihi: 09/10/2024
-📋 Karar Numarası: 2024/12907 D. İş
-⚖️  Mahkeme: Ankara 1. Sulh Ceza Hakimliği
+📋 Dosya Numarası: 2024/12907
+📂 Dosya Türü: D. İş
+⚖️ Mahkeme: Ankara 1. Sulh Ceza Hakimliği
 ────────────────────────────────────────────────────────────
 
 📝 Türkçe Açıklama:
-   discord.com, 09/10/2024 tarihli ve 2024/12907 D. İş sayılı 
+   discord.com, 09/10/2024 tarihli ve 2024/12907 D. İş sayılı
    Ankara 1. Sulh Ceza Hakimliği kararıyla erişime engellenmiştir.
 
 📝 English Description:
-   discord.com has been blocked by the decision dated 09/10/2024 
+   discord.com has been blocked by the decision dated 09/10/2024
    and numbered 2024/12907 D. İş of Ankara 1. Sulh Ceza Hakimliği.
 ════════════════════════════════════════════════════════════
 ```
@@ -155,7 +173,7 @@ google.com
 ════════════════════════════════════════════════════════════
 ✅ Durum: ERİŞİLEBİLİR
 ────────────────────────────────────────────────────────────
-ℹ️  Bu site hakkında herhangi bir engel kararı bulunmamaktadır.
+ℹ️ Bu site hakkında herhangi bir engel kararı bulunmamaktadır.
 ════════════════════════════════════════════════════════════
 ```
 
@@ -164,19 +182,21 @@ google.com
 ```json
 {
   "domain": "discord.com",
-  "timestamp": "2024-11-26T13:45:00.000Z",
+  "timestamp": "2024-11-27T10:30:00.000Z",
+  "turkceAciklama": "discord.com, 09/10/2024 tarihli ve 2024/12907 D. İş sayılı Ankara 1. Sulh Ceza Hakimliği kararıyla erişime engellenmiştir.",
+  "ingilizceAciklama": "discord.com has been blocked by the decision dated 09/10/2024 and numbered 2024/12907 D. İş of Ankara 1. Sulh Ceza Hakimliği.",
   "engelliMi": true,
   "kararTarihi": "09/10/2024",
   "kararNumarasi": "2024/12907 D. İş",
-  "mahkeme": "Ankara 1. Sulh Ceza Hakimliği",
-  "turkceAciklama": "discord.com, 09/10/2024 tarihli ve 2024/12907 D. İş sayılı Ankara 1. Sulh Ceza Hakimliği kararıyla erişime engellenmiştir.",
-  "ingilizceAciklama": "discord.com has been blocked by the decision dated 09/10/2024 and numbered 2024/12907 D. İş of Ankara 1. Sulh Ceza Hakimliği."
+  "dosyaNumarasi": "2024/12907",
+  "dosyaTuru": "D. İş",
+  "mahkeme": "Ankara 1. Sulh Ceza Hakimliği"
 }
 ```
 
 ### Çoklu Sorgu Özeti
 
-```
+```text
 📊 ÖZET
 ════════════════════════════════════════════════════════════
    🚫 Engelli: 2

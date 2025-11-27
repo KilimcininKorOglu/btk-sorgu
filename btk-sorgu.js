@@ -9,8 +9,9 @@
  *   node btk-sorgu.js --liste sites.txt         Liste ile sorgula
  *   node btk-sorgu.js --json <domain>           JSON formatında çıktı
  * 
- * Ortam Değişkenleri:
+ * Ortam Değişkenleri (.env dosyasından veya sistem ortamından):
  *   GEMINI_API_KEY    Google Gemini API anahtarı (ZORUNLU)
+ *   GEMINI_MODEL      Gemini model adı (varsayılan: gemini-2.0-flash)
  * 
  * API Anahtarı Alma:
  *   https://aistudio.google.com/app/apikey
@@ -23,8 +24,64 @@ const readline = require('readline');
 const zlib = require('zlib');
 
 // ============================================================================
+// .ENV DOSYASI YÜKLEME (Zero-dependency)
+// ============================================================================
+
+/**
+ * .env dosyasını okur ve ortam değişkenlerine yükler
+ */
+function loadEnvFile() {
+  const envPath = path.join(process.cwd(), '.env');
+
+  if (!fs.existsSync(envPath)) {
+    return; // .env dosyası yoksa sessizce devam et
+  }
+
+  try {
+    const content = fs.readFileSync(envPath, 'utf-8');
+    const lines = content.split('\n');
+
+    for (const line of lines) {
+      // Boş satırları ve yorumları atla
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) {
+        continue;
+      }
+
+      // KEY=VALUE formatını parse et
+      const equalIndex = trimmed.indexOf('=');
+      if (equalIndex === -1) {
+        continue;
+      }
+
+      const key = trimmed.substring(0, equalIndex).trim();
+      let value = trimmed.substring(equalIndex + 1).trim();
+
+      // Tırnak işaretlerini kaldır
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+
+      // Sadece tanımlı değilse ayarla (sistem ortam değişkenleri öncelikli)
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  } catch (error) {
+    console.error(`⚠️  .env dosyası okunamadı: ${error.message}`);
+  }
+}
+
+// .env dosyasını yükle
+loadEnvFile();
+
+// ============================================================================
 // YAPILANDIRMA
 // ============================================================================
+
+// Varsayılan Gemini model adı
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 
 const CONFIG = {
   // BTK Ayarları
@@ -42,8 +99,13 @@ const CONFIG = {
   },
   CAPTCHA_FILE: 'captcha.png',
 
-  // Gemini API Ayarları
-  GEMINI_API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+  // Gemini API Ayarları (.env dosyasından veya varsayılan)
+  get GEMINI_MODEL() {
+    return process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+  },
+  get GEMINI_API_URL() {
+    return `https://generativelanguage.googleapis.com/v1beta/models/${this.GEMINI_MODEL}:generateContent`;
+  },
   GEMINI_PROMPT: `Bu bir CAPTCHA görüntüsüdür. Görüntüdeki karakterleri aynen oku.
 
 ÖNEMLİ KURALLAR:
@@ -523,27 +585,6 @@ function isCaptchaError(html) {
     html.includes('Doğrulama kodu');
 }
 
-// ============================================================================
-// KULLANICI ARAYÜZÜ FONKSİYONLARI
-// ============================================================================
-
-/**
- * Kullanıcıdan input alır
- */
-function prompt(question) {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
 /**
  * Sonuçları güzel formatta yazdırır
  */
@@ -606,33 +647,6 @@ function outputJSON(domain, result) {
 }
 
 /**
- * CAPTCHA dosyasını varsayılan uygulama ile açar
- */
-async function openCaptchaFile(filePath) {
-  const { exec } = require('child_process');
-  const platform = process.platform;
-
-  let command;
-  if (platform === 'win32') {
-    command = `start "" "${filePath}"`;
-  } else if (platform === 'darwin') {
-    command = `open "${filePath}"`;
-  } else {
-    command = `xdg-open "${filePath}"`;
-  }
-
-  return new Promise((resolve) => {
-    exec(command, (error) => {
-      if (error) {
-        console.log('⚠️  CAPTCHA dosyası otomatik açılamadı.');
-        console.log(`   Manuel olarak açın: ${filePath}`);
-      }
-      resolve();
-    });
-  });
-}
-
-/**
  * Yardım mesajını gösterir
  */
 function showHelp() {
@@ -656,15 +670,16 @@ Seçenekler:
   node btk-sorgu.js --liste sites.txt
   node btk-sorgu.js --json twitter.com
 
-Ortam Değişkenleri:
+Ortam Değişkenleri (.env dosyası veya sistem ortamı):
   GEMINI_API_KEY      Google Gemini API anahtarı (ZORUNLU)
+  GEMINI_MODEL        Gemini model adı (varsayılan: gemini-2.5-flash)
+
+.env Dosyası Örneği:
+  GEMINI_API_KEY=AIzaSy...your_api_key_here
+  GEMINI_MODEL=gemini-2.5-flash
 
 API Anahtarı Alma:
-  1. https://aistudio.google.com/app/apikey adresine gidin
-  2. "Create API Key" butonuna tıklayın
-  3. API anahtarını kopyalayın
-  4. Windows'ta: set GEMINI_API_KEY=your_api_key
-     Linux/Mac'te: export GEMINI_API_KEY=your_api_key
+  https://aistudio.google.com/app/apikey
 `);
 }
 
@@ -721,19 +736,21 @@ async function main() {
   // Gemini API key kontrolü (ZORUNLU)
   const geminiApiKey = process.env.GEMINI_API_KEY;
   if (!geminiApiKey) {
-    console.error('❌ GEMINI_API_KEY ortam değişkeni ayarlanmamış!');
+    console.error('❌ GEMINI_API_KEY ayarlanmamış!');
     console.log('');
-    console.log('   API anahtarı almak için:');
-    console.log('   1. https://aistudio.google.com/app/apikey adresine gidin');
-    console.log('   2. API anahtarı oluşturun');
+    console.log('   Seçenek 1: .env dosyası oluşturun');
+    console.log('   GEMINI_API_KEY=your_api_key');
     console.log('');
-    console.log('   Ayarlamak için:');
+    console.log('   Seçenek 2: Ortam değişkeni ayarlayın');
     console.log('   Windows: set GEMINI_API_KEY=your_api_key');
     console.log('   Linux/Mac: export GEMINI_API_KEY=your_api_key');
+    console.log('');
+    console.log('   API anahtarı almak için: https://aistudio.google.com/app/apikey');
     process.exit(1);
   }
 
-  console.log(`📋 Sorgulanacak ${domains.length} site: ${domains.join(', ')}\n`);
+  console.log(`📋 Sorgulanacak ${domains.length} site: ${domains.join(', ')}`);
+  console.log(`🤖 Model: ${CONFIG.GEMINI_MODEL}\n`);
 
   const results = [];
   let retryCount = 0;
