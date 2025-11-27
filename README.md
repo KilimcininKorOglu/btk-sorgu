@@ -7,8 +7,10 @@ Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfas�
 - 🤖 Google Gemini AI ile otomatik CAPTCHA çözümü
 - 📋 Tek veya çoklu site sorgulama
 - 📁 Dosyadan liste okuma
-- 📊 JSON formatında çıktı desteği
+- 📊 JSON formatında temiz çıktı desteği
 - 🔄 Otomatik yeniden deneme (3x)
+- ⏱️ 30 saniye HTTP timeout
+- 🔀 HTTP redirect desteği
 
 ---
 
@@ -52,21 +54,18 @@ Windows (CMD):
 
 ```cmd
 set GEMINI_API_KEY=AIzaSy...your_api_key_here
-set GEMINI_MODEL=gemini-2.5-flash
 ```
 
 Windows (PowerShell):
 
 ```powershell
 $env:GEMINI_API_KEY="AIzaSy...your_api_key_here"
-$env:GEMINI_MODEL="gemini-2.5-flash"
 ```
 
 Linux/macOS:
 
 ```bash
 export GEMINI_API_KEY=AIzaSy...your_api_key_here
-export GEMINI_MODEL=gemini-2.5-flash
 ```
 
 ### Ortam Değişkenleri
@@ -75,6 +74,7 @@ export GEMINI_MODEL=gemini-2.5-flash
 |----------|---------|------------|----------|
 | `GEMINI_API_KEY` | Evet | - | Google Gemini API anahtarı |
 | `GEMINI_MODEL` | Hayır | `gemini-2.5-flash` | Kullanılacak Gemini modeli |
+| `USER_AGENT` | Hayır | Chrome 120 | Özel User-Agent string |
 
 ---
 
@@ -100,16 +100,17 @@ node btk-sorgu.js --liste sites.txt
 ### JSON Çıktı
 
 ```bash
-# JSON formatında çıktı
+# JSON formatında çıktı (sadece JSON, progress mesajı yok)
 node btk-sorgu.js --json discord.com
 
 # Dosyaya kaydet
 node btk-sorgu.js --json discord.com > sonuc.json
 ```
 
-### Yardım
+### Versiyon ve Yardım
 
 ```bash
+node btk-sorgu.js --version
 node btk-sorgu.js --help
 ```
 
@@ -120,7 +121,8 @@ node btk-sorgu.js --help
 | Seçenek | Açıklama |
 |---------|----------|
 | `--liste <dosya>` | Dosyadan site listesi oku |
-| `--json` | JSON formatında çıktı |
+| `--json` | JSON formatında çıktı (temiz, progress yok) |
+| `--version`, `-v` | Versiyon bilgisini göster |
 | `--help`, `-h` | Yardım mesajını göster |
 
 ---
@@ -177,20 +179,32 @@ google.com
 ════════════════════════════════════════════════════════════
 ```
 
-### JSON Çıktı
+### JSON Çıktı (Başarılı)
 
 ```json
 {
   "domain": "discord.com",
   "timestamp": "2024-11-27T10:30:00.000Z",
-  "turkceAciklama": "discord.com, 09/10/2024 tarihli ve 2024/12907 D. İş sayılı Ankara 1. Sulh Ceza Hakimliği kararıyla erişime engellenmiştir.",
-  "ingilizceAciklama": "discord.com has been blocked by the decision dated 09/10/2024 and numbered 2024/12907 D. İş of Ankara 1. Sulh Ceza Hakimliği.",
+  "status": true,
   "engelliMi": true,
   "kararTarihi": "09/10/2024",
   "kararNumarasi": "2024/12907 D. İş",
   "dosyaNumarasi": "2024/12907",
   "dosyaTuru": "D. İş",
-  "mahkeme": "Ankara 1. Sulh Ceza Hakimliği"
+  "mahkeme": "Ankara 1. Sulh Ceza Hakimliği",
+  "turkceAciklama": "discord.com, 09/10/2024 tarihli ve 2024/12907 D. İş sayılı Ankara 1. Sulh Ceza Hakimliği kararıyla erişime engellenmiştir.",
+  "ingilizceAciklama": "discord.com has been blocked by the decision dated 09/10/2024 and numbered 2024/12907 D. İş of Ankara 1. Sulh Ceza Hakimliği."
+}
+```
+
+### JSON Çıktı (Hata)
+
+```json
+{
+  "domain": "example.com",
+  "timestamp": "2024-11-27T10:30:00.000Z",
+  "status": false,
+  "error": "CAPTCHA çözümü başarısız oldu"
 }
 ```
 
@@ -212,14 +226,9 @@ Script içindeki `CONFIG` objesi ile ayarları değiştirebilirsiniz:
 
 ```javascript
 const CONFIG = {
-  // Yeniden deneme sayısı (CAPTCHA hatalı olursa)
-  MAX_RETRIES: 3,
-  
-  // Yeniden denemeler arası bekleme (ms)
-  RETRY_DELAY: 1000,
-  
-  // Gemini modeli
-  GEMINI_API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+  MAX_RETRIES: 3,           // CAPTCHA yeniden deneme sayısı
+  RETRY_DELAY: 1000,        // Denemeler arası bekleme (ms)
+  REQUEST_TIMEOUT: 30000,   // HTTP timeout (ms)
 };
 ```
 
@@ -227,34 +236,25 @@ const CONFIG = {
 
 ## 🔧 Sorun Giderme
 
-### "GEMINI_API_KEY ortam değişkeni ayarlanmamış"
+### "GEMINI_API_KEY ayarlanmamış"
 
-Ortam değişkenini ayarlayın:
+`.env` dosyası oluşturun veya ortam değişkeni ayarlayın.
 
-```bash
-# Windows
-set GEMINI_API_KEY=your_api_key
-
-# Linux/Mac
-export GEMINI_API_KEY=your_api_key
-```
-
-### "CAPTCHA çözülemedi" hatası
+### "CAPTCHA çözülemedi" / "MAX_TOKENS" hatası
 
 - Gemini API anahtarınızın geçerli olduğundan emin olun
-- API kotanızı kontrol edin (günlük limit)
+- `gemini-2.0-flash` veya `gemini-1.5-flash` modeli deneyin
 - Script otomatik olarak 3 kez yeniden dener
 
 ### "Session başlatılamadı" hatası
 
 - İnternet bağlantınızı kontrol edin
 - BTK sunucusu geçici olarak erişilemez olabilir
-- Bir süre bekleyip tekrar deneyin
 
-### CAPTCHA sürekli hatalı
+### "İstek zaman aşımı" hatası
 
-- Gemini bazen CAPTCHA'yı yanlış okuyabilir
-- Script otomatik olarak 3 kez yeniden dener
+- Ağ bağlantınızı kontrol edin
+- 30 saniye içinde yanıt alınamadı
 
 ---
 
@@ -262,11 +262,11 @@ export GEMINI_API_KEY=your_api_key
 
 ### Nasıl Çalışır?
 
-1. **Session Başlatma:** BTK ana sayfasına GET isteği yapılır, session cookie'leri alınır
+1. **Session Başlatma:** BTK ana sayfasına GET isteği, session cookie'leri alınır
 2. **CAPTCHA İndirme:** Session cookie'leri ile CAPTCHA resmi indirilir
 3. **CAPTCHA Çözme:** Resim base64'e çevrilip Gemini API'ye gönderilir
 4. **Sorgu Gönderme:** POST isteği ile site sorgulanır
-5. **Sonuç Parse:** HTML yanıtından engel bilgileri çıkarılır
+5. **Sonuç Parse:** HTML yanıtından engel bilgileri regex ile çıkarılır
 
 ### API Endpoints
 
