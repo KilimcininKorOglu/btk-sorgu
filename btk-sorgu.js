@@ -942,4 +942,7 @@ async function main() {
 }
 
 // Programı çalıştır
-main().catch(console.error);
+main().catch(error => {
+  console.error(`\n❌ Beklenmeyen hata: ${error.message}`);
+  process.exit(1);
+});
