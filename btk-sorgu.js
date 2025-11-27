@@ -129,7 +129,7 @@ const CONFIG = {
   // Yeniden deneme ayarları
   MAX_RETRIES: 3,
   RETRY_DELAY: 1000,
-  
+
   // HTTP timeout (ms)
   REQUEST_TIMEOUT: 30000,
 };
@@ -304,7 +304,7 @@ function decompressResponse(buffer, encoding) {
  */
 function httpsGet(url, options = {}, redirectCount = 0) {
   const MAX_REDIRECTS = 5;
-  
+
   return new Promise((resolve, reject) => {
     if (redirectCount > MAX_REDIRECTS) {
       reject(new Error('Maksimum redirect sayısı aşıldı'));
@@ -503,7 +503,7 @@ async function solveCaptchaWithGemini(imageBuffer, apiKey) {
     if (response.statusCode !== 200) {
       const errorData = JSON.parse(response.data);
       const errorMsg = errorData.error?.message || `HTTP ${response.statusCode}`;
-      
+
       // Spesifik hata mesajları
       if (response.statusCode === 429) {
         throw new Error(`Gemini API kota aşıldı: ${errorMsg}`);
@@ -745,9 +745,10 @@ function outputJSONError(domain, message) {
 function showHelp() {
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
-║           BTK Site Sorgulama Aracı v2.0                    ║
-║           https://internet.btk.gov.tr/sitesorgu            ║
+║           BTK Site Sorgulama Aracı                         ║
 ╚════════════════════════════════════════════════════════════╝
+
+v${VERSION}
 
 Kullanım:
   node btk-sorgu.js [seçenekler] <domain>
@@ -808,8 +809,7 @@ async function main() {
 
   log(`
 ╔════════════════════════════════════════════════════════════╗
-║           BTK Site Sorgulama Aracı v2.0                    ║
-║           https://internet.btk.gov.tr/sitesorgu            ║
+║           BTK Site Sorgulama Aracı                         ║
 ╚════════════════════════════════════════════════════════════╝
 `);
 
@@ -895,7 +895,7 @@ async function main() {
   try {
     while (retryCount < CONFIG.MAX_RETRIES) {
       // 1. CAPTCHA al
-      const { cookies, imageBuffer, captchaPath } = await getCaptcha();
+      const { cookies, imageBuffer } = await getCaptcha();
 
       let captchaCode;
 
