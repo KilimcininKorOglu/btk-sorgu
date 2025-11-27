@@ -87,12 +87,10 @@ const VERSION = '2.0.1';
 let JSON_OUTPUT = false;
 
 /**
- * Log fonksiyonu - JSON modunda stderr'e, normal modda stdout'a yazar
+ * Log fonksiyonu - JSON modunda sessiz, normal modda stdout'a yazar
  */
 function log(message) {
-  if (JSON_OUTPUT) {
-    console.error(message);
-  } else {
+  if (!JSON_OUTPUT) {
     console.log(message);
   }
 }
