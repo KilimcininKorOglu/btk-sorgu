@@ -1,4 +1,4 @@
-# BTK Site Sorgulama Aracı v2.0
+# BTK Site Sorgulama Aracı v2.0.1
 
 Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfası](https://internet.btk.gov.tr/sitesorgu) üzerinden otomatik olarak sorgulayan Node.js aracı.
 
@@ -24,7 +24,7 @@ Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfas�
 ### 1. Dosyaları İndir
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/KilimcininKorOglu/btk-sorgu.git
 cd btk-sorgu
 ```
 
@@ -243,7 +243,6 @@ const CONFIG = {
 ### "CAPTCHA çözülemedi" / "MAX_TOKENS" hatası
 
 - Gemini API anahtarınızın geçerli olduğundan emin olun
-- `gemini-2.0-flash` veya `gemini-1.5-flash` modeli deneyin
 - Script otomatik olarak 3 kez yeniden dener
 
 ### "Session başlatılamadı" hatası
