@@ -11,7 +11,7 @@
  * 
  * Ortam Değişkenleri (.env dosyasından veya sistem ortamından):
  *   GEMINI_API_KEY    Google Gemini API anahtarı (ZORUNLU)
- *   GEMINI_MODEL      Gemini model adı (varsayılan: gemini-2.0-flash)
+ *   GEMINI_MODEL      Gemini model adı (varsayılan: gemini-2.5-flash)
  * 
  * API Anahtarı Alma:
  *   https://aistudio.google.com/app/apikey
