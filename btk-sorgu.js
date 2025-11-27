@@ -922,18 +922,22 @@ async function main() {
       console.log('═'.repeat(60));
     }
 
-    // CAPTCHA dosyasını temizle
-    const captchaPath = path.join(process.cwd(), CONFIG.CAPTCHA_FILE);
-    if (fs.existsSync(captchaPath)) {
-      fs.unlinkSync(captchaPath);
-      if (!jsonOutput) {
-        console.log('\n🧹 CAPTCHA dosyası temizlendi.');
-      }
-    }
-
   } catch (error) {
     console.error(`\n❌ Hata: ${error.message}`);
     process.exit(1);
+  } finally {
+    // CAPTCHA dosyasını her durumda temizle
+    const captchaPath = path.join(process.cwd(), CONFIG.CAPTCHA_FILE);
+    if (fs.existsSync(captchaPath)) {
+      try {
+        fs.unlinkSync(captchaPath);
+        if (!jsonOutput) {
+          console.log('\n🧹 CAPTCHA dosyası temizlendi.');
+        }
+      } catch (e) {
+        // Temizleme hatası kritik değil, sessizce devam et
+      }
+    }
   }
 }
 
