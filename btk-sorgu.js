@@ -126,15 +126,7 @@ const CONFIG = {
   get GEMINI_API_URL() {
     return `https://generativelanguage.googleapis.com/v1beta/models/${this.GEMINI_MODEL}:generateContent`;
   },
-  GEMINI_PROMPT: `Bu bir CAPTCHA görüntüsüdür. Görüntüdeki karakterleri aynen oku.
-
-ÖNEMLİ KURALLAR:
-- SADECE gördüğün karakterleri yaz, başka hiçbir şey yazma
-- Büyük/küçük harf AYNEN olmalı (case-sensitive)
-- 5 veya 6 karakter olacak
-- Örnek: zQsmR veya A8kN2P
-
-Şimdi resimdeki kodu yaz:`,
+  GEMINI_PROMPT: `Read the CAPTCHA text. Reply with ONLY the characters, nothing else.`,
 
   // Yeniden deneme ayarları
   MAX_RETRIES: 3,
@@ -496,10 +488,8 @@ async function solveCaptchaWithGemini(imageBuffer, apiKey) {
       }
     ],
     generationConfig: {
-      temperature: 0.1,
-      topK: 1,
-      topP: 1,
-      maxOutputTokens: 32,
+      temperature: 0,
+      maxOutputTokens: 64,
     }
   };
 
