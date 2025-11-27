@@ -797,13 +797,6 @@ async function main() {
     process.exit(args.length === 0 ? 1 : 0);
   }
 
-  log(`
-╔════════════════════════════════════════════════════════════╗
-║           BTK Site Sorgulama Aracı v2.0                    ║
-║           https://internet.btk.gov.tr/sitesorgu            ║
-╚════════════════════════════════════════════════════════════╝
-`);
-
   let domains = [];
   let jsonOutput = false;
 
@@ -812,6 +805,13 @@ async function main() {
     jsonOutput = true;
     JSON_OUTPUT = true;
   }
+
+  log(`
+╔════════════════════════════════════════════════════════════╗
+║           BTK Site Sorgulama Aracı v2.0                    ║
+║           https://internet.btk.gov.tr/sitesorgu            ║
+╚════════════════════════════════════════════════════════════╝
+`);
 
   // Argümanları işle
   for (let i = 0; i < args.length; i++) {
