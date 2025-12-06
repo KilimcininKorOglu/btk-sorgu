@@ -1,26 +1,26 @@
-# BTK Site Sorgulama Aracı v2.1.0
+# BTK Site Sorgulama Aracı v3.0.0
 
-Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfası](https://internet.btk.gov.tr/sitesorgu) üzerinden otomatik olarak sorgulayan Node.js aracı.
+Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfası](https://internet.btk.gov.tr/sitesorgu) üzerinden otomatik olarak sorgulayan Go aracı.
 
-**✨ Özellikler:**
+**Özellikler:**
 
-- 🤖 Google Gemini AI ile otomatik CAPTCHA çözümü
-- 📋 Tek veya çoklu site sorgulama
-- 📁 Dosyadan liste okuma
-- 📊 JSON formatında temiz çıktı desteği
-- ⏱️ Her sorgu için süre ölçümü
-- ⚡ Session cookie yeniden kullanımı (hızlı çoklu sorgu)
-- 🔄 Otomatik yeniden deneme (3x)
-- ⏱️ 30 saniye HTTP timeout
-- 🔀 HTTP redirect desteği
+- Google Gemini AI ile otomatik CAPTCHA çözümü
+- CLI ve TUI (Terminal UI) modu
+- Tek veya çoklu site sorgulama
+- Dosyadan liste okuma
+- JSON formatında temiz çıktı desteği
+- Her sorgu için süre ölçümü
+- Otomatik yeniden deneme (3x)
+- 30 saniye HTTP timeout
+- TUI'da kalıcı sorgu geçmişi
 
 ---
 
-## 📦 Kurulum
+## Kurulum
 
 ### Gereksinimler
 
-- Node.js 16+
+- Go 1.21+ (derleme için) veya hazır binary
 - Google Gemini API anahtarı (**zorunlu**)
 
 ### 1. Dosyaları İndir
@@ -30,14 +30,24 @@ git clone https://github.com/KilimcininKorOglu/btk-sorgu.git
 cd btk-sorgu
 ```
 
-### 2. Gemini API Anahtarı Al
+### 2. Derle
+
+```bash
+# Windows
+go build -o btk-sorgu.exe .
+
+# Linux/macOS
+go build -o btk-sorgu .
+```
+
+### 3. Gemini API Anahtarı Al
 
 1. [Google AI Studio](https://aistudio.google.com/app/apikey) adresine gidin
 2. Google hesabınızla giriş yapın
 3. **"Create API Key"** butonuna tıklayın
 4. API anahtarını kopyalayın
 
-### 3. Ortam Değişkenlerini Ayarla
+### 4. Ortam Değişkenlerini Ayarla
 
 **Seçenek 1: `.env` Dosyası (Önerilen)**
 
@@ -48,7 +58,7 @@ GEMINI_API_KEY=AIzaSy...your_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-> 💡 `.env.example` dosyasını `.env` olarak kopyalayabilirsiniz.
+> `.env.example` dosyasını `.env` olarak kopyalayabilirsiniz.
 
 **Seçenek 2: Sistem Ortam Değişkenleri**
 
@@ -80,48 +90,54 @@ export GEMINI_API_KEY=AIzaSy...your_api_key_here
 
 ---
 
-## 🚀 Kullanım
+## Kullanım
 
-### Temel Kullanım
+### CLI Modu
 
 ```bash
 # Tek site sorgula
-node btk-sorgu.js discord.com
-```
+btk-sorgu discord.com
 
-### Çoklu Site Sorgulama
-
-```bash
 # Birden fazla site
-node btk-sorgu.js discord.com pornhub.com google.com twitter.com
+btk-sorgu discord.com twitter.com google.com
 
 # Dosyadan liste okuma
-node btk-sorgu.js --liste sites.txt
-```
+btk-sorgu --liste sites.txt
 
-### JSON Çıktı
-
-```bash
-# JSON formatında çıktı (sadece JSON, progress mesajı yok)
-node btk-sorgu.js --json discord.com
+# JSON formatında çıktı
+btk-sorgu --json discord.com
 
 # Dosyaya kaydet
-node btk-sorgu.js --json discord.com > sonuc.json
+btk-sorgu --json discord.com > sonuc.json
 ```
+
+### TUI Modu (Interaktif)
+
+```bash
+btk-sorgu --tui
+```
+
+**TUI Klavye Kısayolları:**
+
+- `Enter` - Sorgula / Yeni sorgu
+- `Ctrl+D` - Geçmişi temizle
+- `Esc` - Giriş ekranına dön
+- `Q` / `Ctrl+C` - Çıkış
 
 ### Versiyon ve Yardım
 
 ```bash
-node btk-sorgu.js --version
-node btk-sorgu.js --help
+btk-sorgu --version
+btk-sorgu --help
 ```
 
 ---
 
-## 📋 Komut Satırı Seçenekleri
+## Komut Satırı Seçenekleri
 
 | Seçenek | Açıklama |
 |---------|----------|
+| `--tui` | TUI (Terminal UI) modunda çalıştır |
 | `--liste <dosya>` | Dosyadan site listesi oku |
 | `--json` | JSON formatında çıktı (temiz, progress yok) |
 | `--version`, `-v` | Versiyon bilgisini göster |
@@ -129,35 +145,34 @@ node btk-sorgu.js --help
 
 ---
 
-## 📁 Liste Dosyası Formatı
+## Liste Dosyası Formatı
 
 `sites.txt` örneği:
 
 ```text
 # Yorum satırları # ile başlar
 discord.com
-pornhub.com
 twitter.com
 google.com
 ```
 
 ---
 
-## 📊 Örnek Çıktılar
+## Örnek Çıktılar
 
 ### Engellenmiş Site
 
-```text
+```
 ════════════════════════════════════════════════════════════
 📌 Domain: discord.com
-⏱️ Sorgu Süresi: 2.58s
+⏱️  Sorgu Süresi: 2.04s
 ════════════════════════════════════════════════════════════
 🚫 Durum: ENGELLİ
 ────────────────────────────────────────────────────────────
 📅 Karar Tarihi: 09/10/2024
 📋 Dosya Numarası: 2024/12907
 📂 Dosya Türü: D. İş
-⚖️ Mahkeme: Ankara 1. Sulh Ceza Hakimliği
+⚖️  Mahkeme: Ankara 1. Sulh Ceza Hakimliği
 ────────────────────────────────────────────────────────────
 
 📝 Türkçe Açıklama:
@@ -172,26 +187,26 @@ google.com
 
 ### Erişilebilir Site
 
-```text
+```
 ════════════════════════════════════════════════════════════
 📌 Domain: google.com
-⏱️ orgu Süresi: 1.58s
+⏱️  Sorgu Süresi: 1.86s
 ════════════════════════════════════════════════════════════
 ✅ Durum: ERİŞİLEBİLİR
 ────────────────────────────────────────────────────────────
-ℹ️ Bu site hakkında herhangi bir engel kararı bulunmamaktadır.
+ℹ️  Bu site hakkında herhangi bir engel kararı bulunmamaktadır.
 ════════════════════════════════════════════════════════════
 ```
 
-### JSON Çıktı (Başarılı)
+### JSON Çıktı
 
 ```json
 {
   "domain": "discord.com",
-  "timestamp": "2024-11-27T10:30:00.000Z",
+  "timestamp": "2025-12-06T12:47:32Z",
   "status": true,
-  "queryDuration": 2580,
-  "queryDurationFormatted": "2.58s",
+  "queryDuration": 2040,
+  "queryDurationFormatted": "2.04s",
   "engelliMi": true,
   "kararTarihi": "09/10/2024",
   "kararNumarasi": "2024/12907 D. İş",
@@ -203,53 +218,18 @@ google.com
 }
 ```
 
-### JSON Çıktı (Hata)
-
-```json
-{
-  "domain": "example.com",
-  "timestamp": "2024-11-27T10:30:00.000Z",
-  "status": false,
-  "error": "CAPTCHA çözümü başarısız oldu"
-}
-```
-
-### Çoklu Sorgu Özeti
-
-```text
-📊 ÖZET
-════════════════════════════════════════════════════════════
-   🚫 Engelli: 2
-   ✅ Erişilebilir: 1
-════════════════════════════════════════════════════════════
-```
-
 ---
 
-## ⚙️ Yapılandırma
-
-Script içindeki `CONFIG` objesi ile ayarları değiştirebilirsiniz:
-
-```javascript
-const CONFIG = {
-  MAX_RETRIES: 3,           // CAPTCHA yeniden deneme sayısı
-  RETRY_DELAY: 1000,        // Denemeler arası bekleme (ms)
-  REQUEST_TIMEOUT: 30000,   // HTTP timeout (ms)
-};
-```
-
----
-
-## 🔧 Sorun Giderme
+## Sorun Giderme
 
 ### "GEMINI_API_KEY ayarlanmamış"
 
 `.env` dosyası oluşturun veya ortam değişkeni ayarlayın.
 
-### "CAPTCHA çözülemedi" / "MAX_TOKENS" hatası
+### "CAPTCHA çözülemedi"
 
 - Gemini API anahtarınızın geçerli olduğundan emin olun
-- Script otomatik olarak 3 kez yeniden dener
+- Araç otomatik olarak 3 kez yeniden dener
 
 ### "Session başlatılamadı" hatası
 
@@ -263,7 +243,7 @@ const CONFIG = {
 
 ---
 
-## 📝 Teknik Detaylar
+## Teknik Detaylar
 
 ### Nasıl Çalışır?
 
@@ -272,35 +252,30 @@ const CONFIG = {
 3. **CAPTCHA Çözme:** Resim base64'e çevrilip Gemini API'ye gönderilir
 4. **Sorgu Gönderme:** POST isteği ile site sorgulanır
 5. **Sonuç Parse:** HTML yanıtından engel bilgileri regex ile çıkarılır
-6. **Session Yeniden Kullanım:** Çoklu sorguda session cookie'leri saklanır ve sonraki sorgularda yeniden kullanılır (HTTP istek sayısı azalır)
 
-### Performans Optimizasyonları
+### Dosya Yapısı
 
-- **Session Reuse:** Çoklu sorgularda ilk sorgudan alınan session cookie'leri yeniden kullanılır
-- **Sorgu Süresi Ölçümü:** Her sorgu için toplam süre ölçülür ve gösterilir
-- İlk sorgu: ~2-3 saniye (session + CAPTCHA + sorgu)
-- Sonraki sorgular: ~1.5-2 saniye (sadece CAPTCHA + sorgu)
+```
+btk-sorgu/
+├── main.go          # Ana CLI mantığı, HTTP client, Gemini API
+├── tui.go           # Terminal UI (Bubble Tea)
+├── go.mod           # Go modülü
+├── go.sum           # Bağımlılıklar
+├── .env             # API anahtarları (oluşturulmalı)
+├── .env.example     # Örnek .env
+├── history.json     # TUI sorgu geçmişi (otomatik)
+└── README.md
+```
 
-### API Endpoints
+### Bağımlılıklar
 
-| Endpoint | Method | Açıklama |
-|----------|--------|----------|
-| `/sitesorgu/` | GET | Session cookie al |
-| `/sitesorgu/secureimage/captcha.php` | GET | CAPTCHA resmi indir |
-| `/sitesorgu/` | POST | Site sorgula |
-
-### POST Parametreleri
-
-| Parametre | Değer |
-|-----------|-------|
-| `deger` | Sorgulanacak domain |
-| `security_code` | CAPTCHA kodu |
-| `submit` | "Sorgula" |
-| `ayrintili` | "0" |
+- `github.com/charmbracelet/bubbletea` - TUI framework
+- `github.com/charmbracelet/lipgloss` - TUI styling
+- `github.com/charmbracelet/bubbles` - TUI components
 
 ---
 
-## 💰 Maliyet
+## Maliyet
 
 - **Gemini API:** Ücretsiz tier günde 60 istek/dakika destekler
 - Her CAPTCHA çözümü = 1 API isteği
@@ -308,6 +283,6 @@ const CONFIG = {
 
 ---
 
-## ⚠️ Yasal Uyarı
+## Yasal Uyarı
 
 Bu araç yalnızca **eğitim ve bilgilendirme** amaçlıdır. BTK'nın kullanım koşullarına uygun şekilde kullanın. Aşırı sorgulama yapmaktan kaçının.

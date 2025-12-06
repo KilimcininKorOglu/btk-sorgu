@@ -100,21 +100,24 @@ const (
 	stateInput tuiState = iota
 	stateQuerying
 	stateResult
+	stateHistory // Geçmiş tablosu aktif
 )
 
 // TUI model
 type tuiModel struct {
-	state       tuiState
-	textInput   textinput.Model
-	spinner     spinner.Model
-	table       table.Model
-	results     []QueryResult
-	currentMsg  string
-	err         error
-	width       int
-	height      int
-	apiKey      string
-	queryDomain string
+	state          tuiState
+	textInput      textinput.Model
+	spinner        spinner.Model
+	table          table.Model
+	results        []QueryResult
+	currentMsg     string
+	err            error
+	width          int
+	height         int
+	apiKey         string
+	queryDomain    string
+	refreshingIdx  int  // Güncellenen sorgunun index'i (-1 = yeni sorgu)
+	inputFocused   bool // Input mu yoksa tablo mu odaklı
 }
 
 // Mesaj tipleri
@@ -175,12 +178,14 @@ func newTUIModel(apiKey string) tuiModel {
 	history := loadHistory()
 
 	model := tuiModel{
-		state:     stateInput,
-		textInput: ti,
-		spinner:   s,
-		table:     t,
-		results:   history,
-		apiKey:    apiKey,
+		state:         stateInput,
+		textInput:     ti,
+		spinner:       s,
+		table:         t,
+		results:       history,
+		apiKey:        apiKey,
+		refreshingIdx: -1,
+		inputFocused:  true,
 	}
 
 	// Tablo'yu geçmiş verilerle güncelle
@@ -205,27 +210,55 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "ctrl+d":
 			// Geçmişi temizle
-			if m.state == stateInput && len(m.results) > 0 {
+			if (m.state == stateInput || m.state == stateHistory) && len(m.results) > 0 {
 				m.results = []QueryResult{}
 				m.updateTable()
 				saveHistory(m.results)
+				m.state = stateInput
+				m.inputFocused = true
+			}
+		case "tab":
+			// Input ve tablo arasında geçiş
+			if m.state == stateInput && len(m.results) > 0 {
+				m.state = stateHistory
+				m.inputFocused = false
+				m.textInput.Blur()
+			} else if m.state == stateHistory {
+				m.state = stateInput
+				m.inputFocused = true
+				m.textInput.Focus()
+				return m, textinput.Blink
 			}
 		case "enter":
 			if m.state == stateInput && m.textInput.Value() != "" {
+				// Yeni sorgu
 				domain := strings.TrimSpace(m.textInput.Value())
 				if isValidDomain(domain) {
 					m.state = stateQuerying
 					m.queryDomain = domain
+					m.refreshingIdx = -1 // Yeni sorgu
 					m.currentMsg = "Session başlatılıyor..."
 					return m, tea.Batch(m.spinner.Tick, m.startQuery(domain))
 				} else {
 					m.err = fmt.Errorf("geçersiz domain: %s", domain)
+				}
+			} else if m.state == stateHistory && len(m.results) > 0 {
+				// Geçmişten seçilen domain'i tekrar sorgula
+				selectedIdx := m.table.Cursor()
+				if selectedIdx >= 0 && selectedIdx < len(m.results) {
+					domain := m.results[selectedIdx].Domain
+					m.state = stateQuerying
+					m.queryDomain = domain
+					m.refreshingIdx = selectedIdx // Güncellenecek index
+					m.currentMsg = "Yeniden sorgulanıyor..."
+					return m, tea.Batch(m.spinner.Tick, m.startQuery(domain))
 				}
 			} else if m.state == stateResult {
 				// Yeni sorgu için input'a dön
 				m.state = stateInput
 				m.textInput.SetValue("")
 				m.textInput.Focus()
+				m.inputFocused = true
 				m.err = nil
 				return m, textinput.Blink
 			}
@@ -233,6 +266,12 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == stateResult {
 				m.state = stateInput
 				m.textInput.Focus()
+				m.inputFocused = true
+				return m, textinput.Blink
+			} else if m.state == stateHistory {
+				m.state = stateInput
+				m.textInput.Focus()
+				m.inputFocused = true
 				return m, textinput.Blink
 			}
 		}
@@ -253,7 +292,14 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case queryResultMsg:
 		m.state = stateResult
-		m.results = append(m.results, msg.result)
+		if m.refreshingIdx >= 0 && m.refreshingIdx < len(m.results) {
+			// Mevcut kaydı güncelle
+			m.results[m.refreshingIdx] = msg.result
+		} else {
+			// Yeni kayıt ekle
+			m.results = append(m.results, msg.result)
+		}
+		m.refreshingIdx = -1
 		m.updateTable()
 		// Geçmişi kaydet
 		saveHistory(m.results)
@@ -270,8 +316,8 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
-	// Tablo güncellemesi
-	if m.state == stateResult {
+	// Tablo güncellemesi (history veya result modunda)
+	if m.state == stateHistory || m.state == stateResult {
 		var cmd tea.Cmd
 		m.table, cmd = m.table.Update(msg)
 		cmds = append(cmds, cmd)
@@ -339,15 +385,24 @@ func (m tuiModel) View() string {
 		}
 
 		if len(m.results) > 0 {
-			s.WriteString("\n📊 Önceki Sorgular:\n\n")
+			s.WriteString("\n📊 Önceki Sorgular " + infoStyle.Render("(Tab ile seç)") + ":\n\n")
 			s.WriteString(m.table.View() + "\n")
 		}
 
 		if len(m.results) > 0 {
-			s.WriteString(helpStyle.Render("\n[Enter] Sorgula • [Ctrl+D] Geçmişi Temizle • [Q] Çıkış"))
+			s.WriteString(helpStyle.Render("\n[Enter] Sorgula • [Tab] Geçmişe Git • [Ctrl+D] Temizle • [Q] Çıkış"))
 		} else {
 			s.WriteString(helpStyle.Render("\n[Enter] Sorgula • [Q] Çıkış"))
 		}
+
+	case stateHistory:
+		s.WriteString("Domain girin:\n\n")
+		s.WriteString(infoStyle.Render(m.textInput.View()) + "\n")
+
+		s.WriteString("\n📊 Geçmiş Sorgular " + successStyle.Render("(↑↓ ile seç, Enter ile yenile)") + ":\n\n")
+		s.WriteString(m.table.View() + "\n")
+
+		s.WriteString(helpStyle.Render("\n[Enter] Seçili Sorguyu Yenile • [Tab/Esc] Geri • [Ctrl+D] Temizle • [Q] Çıkış"))
 
 	case stateQuerying:
 		s.WriteString(m.spinner.View() + " " + m.currentMsg + "\n")
