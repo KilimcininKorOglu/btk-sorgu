@@ -585,12 +585,14 @@ Kullanım:
   btk-sorgu [seçenekler] <domain>
 
 Seçenekler:
+  --tui               TUI (Terminal UI) modunda çalıştır
   --liste <dosya>     Dosyadan site listesi oku
   --json              JSON formatında çıktı
   --version, -v       Versiyon bilgisini göster
   --help, -h          Bu yardım mesajını göster
 
 Örnekler:
+  btk-sorgu --tui                        # TUI modu
   btk-sorgu discord.com
   btk-sorgu discord.com twitter.com google.com
   btk-sorgu --liste sites.txt
@@ -663,10 +665,12 @@ func main() {
 		listFile    string
 		showVersion bool
 		showHelpArg bool
+		tuiMode     bool
 	)
 
 	flag.StringVar(&listFile, "liste", "", "Dosyadan site listesi oku")
 	flag.BoolVar(&jsonOutput, "json", false, "JSON formatında çıktı")
+	flag.BoolVar(&tuiMode, "tui", false, "TUI modunda çalıştır")
 	flag.BoolVar(&showVersion, "version", false, "Versiyon bilgisini göster")
 	flag.BoolVar(&showVersion, "v", false, "Versiyon bilgisini göster")
 	flag.BoolVar(&showHelpArg, "help", false, "Yardım mesajını göster")
@@ -680,9 +684,34 @@ func main() {
 	}
 
 	// Yardım
-	if showHelpArg || (len(flag.Args()) == 0 && listFile == "") {
+	if showHelpArg || (len(flag.Args()) == 0 && listFile == "" && !tuiMode) {
 		showHelp()
-		if len(flag.Args()) == 0 && listFile == "" {
+		if len(flag.Args()) == 0 && listFile == "" && !tuiMode {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	// API key kontrolü (TUI ve CLI için ortak)
+	apiKey := os.Getenv("GEMINI_API_KEY")
+	if apiKey == "" {
+		if jsonOutput {
+			outputJSONError("", "GEMINI_API_KEY ayarlanmamış")
+		} else {
+			fmt.Fprintln(os.Stderr, "❌ GEMINI_API_KEY ayarlanmamış!")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "   .env dosyası oluşturun:")
+			fmt.Fprintln(os.Stderr, "   GEMINI_API_KEY=your_api_key")
+			fmt.Fprintln(os.Stderr, "")
+			fmt.Fprintln(os.Stderr, "   API anahtarı almak için: https://aistudio.google.com/app/apikey")
+		}
+		os.Exit(1)
+	}
+
+	// TUI modu
+	if tuiMode {
+		if err := runTUI(apiKey); err != nil {
+			fmt.Fprintf(os.Stderr, "❌ TUI hatası: %v\n", err)
 			os.Exit(1)
 		}
 		os.Exit(0)
@@ -730,22 +759,6 @@ func main() {
 			outputJSONError("", "Geçerli domain bulunamadı")
 		} else {
 			fmt.Fprintln(os.Stderr, "❌ Geçerli domain bulunamadı!")
-		}
-		os.Exit(1)
-	}
-
-	// API key kontrolü
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		if jsonOutput {
-			outputJSONError("", "GEMINI_API_KEY ayarlanmamış")
-		} else {
-			fmt.Fprintln(os.Stderr, "❌ GEMINI_API_KEY ayarlanmamış!")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "   .env dosyası oluşturun:")
-			fmt.Fprintln(os.Stderr, "   GEMINI_API_KEY=your_api_key")
-			fmt.Fprintln(os.Stderr, "")
-			fmt.Fprintln(os.Stderr, "   API anahtarı almak için: https://aistudio.google.com/app/apikey")
 		}
 		os.Exit(1)
 	}
