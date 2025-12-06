@@ -33,8 +33,8 @@ jobs:
           # Get latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-          # Get current version from main.go
-          CURRENT_VERSION=$(grep -oP 'const Version = "\K[^"]+' main.go)
+          # Get current version from main.go (compatible with all grep versions)
+          CURRENT_VERSION=$(grep 'var Version' main.go | sed 's/.*"\([^"]*\)".*/\1/')
           echo "Current version in main.go: $CURRENT_VERSION"
 
           if [ -z "$LATEST_TAG" ]; then
