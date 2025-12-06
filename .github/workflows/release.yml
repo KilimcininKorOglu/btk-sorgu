@@ -30,47 +30,62 @@ jobs:
       - name: Calculate next version
         id: version
         run: |
-          # Get latest tag or start from v0.0.0
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Latest tag: $LATEST_TAG"
+          # Get latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-          # Remove 'v' prefix
-          VERSION=${LATEST_TAG#v}
+          # Get current version from main.go
+          CURRENT_VERSION=$(grep -oP 'const Version = "\K[^"]+' main.go)
+          echo "Current version in main.go: $CURRENT_VERSION"
 
-          # Split version
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-
-          # Get commit messages since last tag
-          if [ "$LATEST_TAG" = "v0.0.0" ]; then
-            COMMITS=$(git log --oneline --pretty=format:"%s")
+          if [ -z "$LATEST_TAG" ]; then
+            # No tags exist - use current version from main.go (first release)
+            echo "No tags found, using version from main.go: $CURRENT_VERSION"
+            NEW_VERSION="$CURRENT_VERSION"
+            BUMP_TYPE="initial"
           else
-            COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"%s")
+            echo "Latest tag: $LATEST_TAG"
+
+            # Remove 'v' prefix
+            VERSION=${LATEST_TAG#v}
+
+            # Split version
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+            # Get commit messages since last tag
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"%s" 2>/dev/null || echo "")
+
+            if [ -z "$COMMITS" ]; then
+              echo "No new commits since last tag"
+              NEW_VERSION="$VERSION"
+              BUMP_TYPE="none"
+            else
+              echo "Commits since last tag:"
+              echo "$COMMITS"
+
+              # Determine version bump based on commit messages
+              if echo "$COMMITS" | grep -qiE "BREAKING CHANGE|^break:|^!:"; then
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                BUMP_TYPE="major"
+              elif echo "$COMMITS" | grep -qiE "^feat(\(.+\))?:|^feature:"; then
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                BUMP_TYPE="minor"
+              elif echo "$COMMITS" | grep -qiE "^fix(\(.+\))?:|^perf:|^refactor:"; then
+                PATCH=$((PATCH + 1))
+                BUMP_TYPE="patch"
+              else
+                # Default to patch for any other commits
+                PATCH=$((PATCH + 1))
+                BUMP_TYPE="patch"
+              fi
+
+              NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+            fi
           fi
 
-          echo "Commits since last tag:"
-          echo "$COMMITS"
-
-          # Determine version bump based on commit messages
-          if echo "$COMMITS" | grep -qiE "BREAKING CHANGE|^break:|^!:"; then
-            MAJOR=$((MAJOR + 1))
-            MINOR=0
-            PATCH=0
-            BUMP_TYPE="major"
-          elif echo "$COMMITS" | grep -qiE "^feat(\(.+\))?:|^feature:"; then
-            MINOR=$((MINOR + 1))
-            PATCH=0
-            BUMP_TYPE="minor"
-          elif echo "$COMMITS" | grep -qiE "^fix(\(.+\))?:|^perf:|^refactor:"; then
-            PATCH=$((PATCH + 1))
-            BUMP_TYPE="patch"
-          else
-            # Default to patch for any other commits
-            PATCH=$((PATCH + 1))
-            BUMP_TYPE="patch"
-          fi
-
-          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          echo "New version: $NEW_VERSION ($BUMP_TYPE bump)"
+          echo "New version: $NEW_VERSION ($BUMP_TYPE)"
 
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
