@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -10,6 +13,43 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+// History dosya adı
+const historyFileName = "history.json"
+
+// HistoryData geçmiş sorgu verileri
+type HistoryData struct {
+	Queries []QueryResult `json:"queries"`
+}
+
+// loadHistory geçmiş sorguları dosyadan yükler
+func loadHistory() []QueryResult {
+	historyPath := filepath.Join(".", historyFileName)
+	data, err := os.ReadFile(historyPath)
+	if err != nil {
+		return []QueryResult{}
+	}
+
+	var history HistoryData
+	if err := json.Unmarshal(data, &history); err != nil {
+		return []QueryResult{}
+	}
+
+	return history.Queries
+}
+
+// saveHistory sorguları dosyaya kaydeder
+func saveHistory(results []QueryResult) error {
+	historyPath := filepath.Join(".", historyFileName)
+	history := HistoryData{Queries: results}
+
+	data, err := json.MarshalIndent(history, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(historyPath, data, 0644)
+}
 
 // TUI stilleri
 var (
@@ -131,14 +171,22 @@ func newTUIModel(apiKey string) tuiModel {
 		Bold(false)
 	t.SetStyles(ts)
 
-	return tuiModel{
+	// Geçmiş sorguları yükle
+	history := loadHistory()
+
+	model := tuiModel{
 		state:     stateInput,
 		textInput: ti,
 		spinner:   s,
 		table:     t,
-		results:   []QueryResult{},
+		results:   history,
 		apiKey:    apiKey,
 	}
+
+	// Tablo'yu geçmiş verilerle güncelle
+	model.updateTable()
+
+	return model
 }
 
 func (m tuiModel) Init() tea.Cmd {
@@ -154,6 +202,13 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			if m.state != stateQuerying {
 				return m, tea.Quit
+			}
+		case "ctrl+d":
+			// Geçmişi temizle
+			if m.state == stateInput && len(m.results) > 0 {
+				m.results = []QueryResult{}
+				m.updateTable()
+				saveHistory(m.results)
 			}
 		case "enter":
 			if m.state == stateInput && m.textInput.Value() != "" {
@@ -200,6 +255,8 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = stateResult
 		m.results = append(m.results, msg.result)
 		m.updateTable()
+		// Geçmişi kaydet
+		saveHistory(m.results)
 
 	case queryErrorMsg:
 		m.state = stateResult
@@ -286,7 +343,11 @@ func (m tuiModel) View() string {
 			s.WriteString(m.table.View() + "\n")
 		}
 
-		s.WriteString(helpStyle.Render("\n[Enter] Sorgula • [Q] Çıkış"))
+		if len(m.results) > 0 {
+			s.WriteString(helpStyle.Render("\n[Enter] Sorgula • [Ctrl+D] Geçmişi Temizle • [Q] Çıkış"))
+		} else {
+			s.WriteString(helpStyle.Render("\n[Enter] Sorgula • [Q] Çıkış"))
+		}
 
 	case stateQuerying:
 		s.WriteString(m.spinner.View() + " " + m.currentMsg + "\n")
