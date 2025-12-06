@@ -448,27 +448,40 @@ func parseHTML(html string) QueryResult {
 	if result.TurkceAciklama != "" && strings.Contains(result.TurkceAciklama, "engellenmiştir") {
 		result.EngelliMi = true
 
-		// Karar bilgilerini çıkar
-		kararRegex := regexp.MustCompile(`(\d{2}/\d{2}/\d{4}) tarihli ve ((\d+/\d+)\s+([A-Za-zİıÜüÖöÇçŞşĞğ.\s]+?)) sayılı (.+?) kararıyla`)
-		if match := kararRegex.FindStringSubmatch(result.TurkceAciklama); len(match) > 5 {
+		// Mahkeme kararları için regex (örn: "2024/12907 D. İş sayılı Ankara 1. Sulh Ceza Hakimliği")
+		mahkemeRegex := regexp.MustCompile(`(\d{2}/\d{2}/\d{4}) tarihli ve ((\d+/\d+)\s+([A-Za-zİıÜüÖöÇçŞşĞğ.\s]+?)) sayılı (.+?) kararıyla`)
+		if match := mahkemeRegex.FindStringSubmatch(result.TurkceAciklama); len(match) > 5 {
 			result.KararTarihi = match[1]
 			result.KararNumarasi = strings.TrimSpace(match[2])
 			result.DosyaNumarasi = match[3]
 			result.DosyaTuru = strings.TrimSpace(match[4])
 			result.Mahkeme = match[5]
+			return result // Engelli - mahkeme kararı bulundu
 		}
+
+		// BTK idari kararları için regex (örn: "490.05.01.2025.-772086 sayılı BTK")
+		btkRegex := regexp.MustCompile(`(\d{2}/\d{2}/\d{4}) tarihli ve ([\d.\-]+) sayılı (.+?) kararıyla`)
+		if match := btkRegex.FindStringSubmatch(result.TurkceAciklama); len(match) > 3 {
+			result.KararTarihi = match[1]
+			result.KararNumarasi = match[2]
+			result.DosyaNumarasi = match[2]
+			result.DosyaTuru = "İdari Karar"
+			result.Mahkeme = match[3]
+			return result // Engelli - BTK idari kararı bulundu
+		}
+
+		// Regex eşleşmese bile engellenmiş - detaylar bulunamadı
+		return result
 	}
 
-	// Engel yok mesajı kontrolü
+	// Engel yok mesajı kontrolü - sadece engelliMi false ise çalışır
 	noBlockPatterns := []string{
-		"herhangi bir idari karar",
-		"herhangi bir yargı karar",
-		"uygulanan bir karar bulunamadı",
-		"karar bulunamadı",
+		"herhangi bir idari karar bulunmamaktadır",
+		"herhangi bir yargı kararı bulunmamaktadır",
 	}
 
 	for _, pattern := range noBlockPatterns {
-		if strings.Contains(strings.ToLower(html), strings.ToLower(pattern)) {
+		if strings.Contains(strings.ToLower(result.TurkceAciklama), strings.ToLower(pattern)) {
 			result.EngelliMi = false
 			result.TurkceAciklama = "Bu site hakkında herhangi bir engel kararı bulunmamaktadır."
 			break

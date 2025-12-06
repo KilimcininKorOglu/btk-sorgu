@@ -7,6 +7,7 @@ Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfas�
 - Google Gemini AI ile otomatik CAPTCHA çözümü
 - Varsayılan TUI (Terminal UI) modu - exe çift tıklamayla açılır
 - CLI modu ile tek veya çoklu site sorgulama
+- Mahkeme ve BTK idari kararlarını destekler
 - Dosyadan liste okuma
 - JSON formatında temiz çıktı desteği
 - Her sorgu için süre ölçümü
@@ -263,13 +264,16 @@ google.com
 
 ```
 btk-sorgu/
-├── main.go          # Ana CLI mantığı, HTTP client, Gemini API
-├── tui.go           # Terminal UI (Bubble Tea)
-├── go.mod           # Go modülü
-├── go.sum           # Bağımlılıklar
-├── .env             # API anahtarları (oluşturulmalı)
-├── .env.example     # Örnek .env
-├── history.json     # TUI sorgu geçmişi (otomatik)
+├── main.go           # Ana CLI mantığı, HTTP client, Gemini API
+├── tui.go            # Terminal UI (Bubble Tea)
+├── go.mod            # Go modülü
+├── go.sum            # Bağımlılıklar
+├── build.bat         # Windows cross-compile script
+├── build.sh          # Linux/macOS cross-compile script
+├── .env              # API anahtarları (oluşturulmalı)
+├── .env.example      # Örnek .env
+├── history.json      # TUI sorgu geçmişi (otomatik)
+├── .github/workflows # GitHub Actions CI/CD
 └── README.md
 ```
 
