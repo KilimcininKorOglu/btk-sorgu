@@ -1,0 +1,175 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Get dependencies
+        run: go mod tidy
+
+      - name: Calculate next version
+        id: version
+        run: |
+          # Get latest tag or start from v0.0.0
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+
+          # Remove 'v' prefix
+          VERSION=${LATEST_TAG#v}
+
+          # Split version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # Get commit messages since last tag
+          if [ "$LATEST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --oneline --pretty=format:"%s")
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"%s")
+          fi
+
+          echo "Commits since last tag:"
+          echo "$COMMITS"
+
+          # Determine version bump based on commit messages
+          if echo "$COMMITS" | grep -qiE "BREAKING CHANGE|^break:|^!:"; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            BUMP_TYPE="major"
+          elif echo "$COMMITS" | grep -qiE "^feat(\(.+\))?:|^feature:"; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            BUMP_TYPE="minor"
+          elif echo "$COMMITS" | grep -qiE "^fix(\(.+\))?:|^perf:|^refactor:"; then
+            PATCH=$((PATCH + 1))
+            BUMP_TYPE="patch"
+          else
+            # Default to patch for any other commits
+            PATCH=$((PATCH + 1))
+            BUMP_TYPE="patch"
+          fi
+
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "New version: $NEW_VERSION ($BUMP_TYPE bump)"
+
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+
+      - name: Update version in main.go
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          sed -i 's/const Version = "[^"]*"/const Version = "${{ steps.version.outputs.version }}"/' main.go
+          cat main.go | grep "const Version"
+
+      - name: Build for all platforms
+        run: |
+          mkdir -p dist
+
+          # Windows AMD64
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/btk-sorgu-windows-amd64.exe .
+
+          # Windows ARM64
+          GOOS=windows GOARCH=arm64 go build -ldflags="-s -w" -o dist/btk-sorgu-windows-arm64.exe .
+
+          # Linux AMD64
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/btk-sorgu-linux-amd64 .
+
+          # Linux ARM64
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/btk-sorgu-linux-arm64 .
+
+          # macOS AMD64 (Intel)
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/btk-sorgu-darwin-amd64 .
+
+          # macOS ARM64 (Apple Silicon)
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/btk-sorgu-darwin-arm64 .
+
+      - name: Create checksums
+        run: |
+          cd dist
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: btk-sorgu-binaries
+          path: dist/
+          retention-days: 30
+
+      - name: Check if tag exists
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: tag_check
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag v${{ steps.version.outputs.version }} already exists, skipping release"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Tag v${{ steps.version.outputs.version }} does not exist, will create release"
+          fi
+
+      - name: Create Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.tag_check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: BTK Sorgu v${{ steps.version.outputs.version }}
+          body: |
+            ## BTK Site Sorgulama Araci v${{ steps.version.outputs.version }}
+
+            ### Downloads
+
+            | Platform | Architecture | File |
+            |----------|--------------|------|
+            | Windows | x64 | `btk-sorgu-windows-amd64.exe` |
+            | Windows | ARM64 | `btk-sorgu-windows-arm64.exe` |
+            | Linux | x64 | `btk-sorgu-linux-amd64` |
+            | Linux | ARM64 | `btk-sorgu-linux-arm64` |
+            | macOS | Intel | `btk-sorgu-darwin-amd64` |
+            | macOS | Apple Silicon | `btk-sorgu-darwin-arm64` |
+
+            ### Usage
+
+            ```bash
+            # TUI mode (default)
+            ./btk-sorgu
+
+            # CLI mode
+            ./btk-sorgu discord.com
+
+            # JSON output
+            ./btk-sorgu --json discord.com
+            ```
+
+            ### Requirements
+
+            - Gemini API key from https://aistudio.google.com/app/apikey
+            - Create `.env` file with `GEMINI_API_KEY=your_key`
+          files: |
+            dist/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
