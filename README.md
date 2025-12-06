@@ -5,14 +5,14 @@ Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfas�
 **Özellikler:**
 
 - Google Gemini AI ile otomatik CAPTCHA çözümü
-- CLI ve TUI (Terminal UI) modu
-- Tek veya çoklu site sorgulama
+- Varsayılan TUI (Terminal UI) modu - exe çift tıklamayla açılır
+- CLI modu ile tek veya çoklu site sorgulama
 - Dosyadan liste okuma
 - JSON formatında temiz çıktı desteği
 - Her sorgu için süre ölçümü
+- TUI'da sorgu geçmişi ve yenileme
 - Otomatik yeniden deneme (3x)
 - 30 saniye HTTP timeout
-- TUI'da kalıcı sorgu geçmişi
 
 ---
 
@@ -92,6 +92,24 @@ export GEMINI_API_KEY=AIzaSy...your_api_key_here
 
 ## Kullanım
 
+### TUI Modu (Varsayılan)
+
+Argüman olmadan çalıştırıldığında veya exe'ye çift tıklandığında TUI modu açılır:
+
+```bash
+btk-sorgu            # TUI modu (varsayılan)
+btk-sorgu --tui      # TUI modu (açık)
+```
+
+**TUI Klavye Kısayolları:**
+
+- `Enter` - Sorgula / Geçmişten seçili öğeyi yenile
+- `Tab` - Input ve geçmiş tablosu arasında geçiş
+- `↑↓` - Geçmiş tablosunda gezinme
+- `Ctrl+D` - Geçmişi temizle
+- `Esc` - Giriş ekranına dön
+- `Q` / `Ctrl+C` - Çıkış
+
 ### CLI Modu
 
 ```bash
@@ -111,19 +129,6 @@ btk-sorgu --json discord.com
 btk-sorgu --json discord.com > sonuc.json
 ```
 
-### TUI Modu (Interaktif)
-
-```bash
-btk-sorgu --tui
-```
-
-**TUI Klavye Kısayolları:**
-
-- `Enter` - Sorgula / Yeni sorgu
-- `Ctrl+D` - Geçmişi temizle
-- `Esc` - Giriş ekranına dön
-- `Q` / `Ctrl+C` - Çıkış
-
 ### Versiyon ve Yardım
 
 ```bash
@@ -137,8 +142,9 @@ btk-sorgu --help
 
 | Seçenek | Açıklama |
 |---------|----------|
-| `--tui` | TUI (Terminal UI) modunda çalıştır |
-| `--liste <dosya>` | Dosyadan site listesi oku |
+| *(argüman yok)* | TUI modunda çalıştır (varsayılan) |
+| `--tui` | TUI modunda çalıştır (açık) |
+| `--liste <dosya>` | Dosyadan site listesi oku (CLI modu) |
 | `--json` | JSON formatında çıktı (temiz, progress yok) |
 | `--version`, `-v` | Versiyon bilgisini göster |
 | `--help`, `-h` | Yardım mesajını göster |

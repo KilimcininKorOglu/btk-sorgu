@@ -684,12 +684,14 @@ func main() {
 	}
 
 	// Yardım
-	if showHelpArg || (len(flag.Args()) == 0 && listFile == "" && !tuiMode) {
+	if showHelpArg {
 		showHelp()
-		if len(flag.Args()) == 0 && listFile == "" && !tuiMode {
-			os.Exit(1)
-		}
 		os.Exit(0)
+	}
+
+	// Argüman yoksa varsayılan olarak TUI modunda başla
+	if len(flag.Args()) == 0 && listFile == "" && !jsonOutput {
+		tuiMode = true
 	}
 
 	// API key kontrolü (TUI ve CLI için ortak)

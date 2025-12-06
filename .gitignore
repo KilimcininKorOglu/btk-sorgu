@@ -3,3 +3,5 @@ captcha.png
 history.json
 btk-sorgu.exe
 btk-sorgu
+*.exe~
+*~
