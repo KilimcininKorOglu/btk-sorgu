@@ -523,7 +523,7 @@ func printResult(domain string, result QueryResult, durationMs int64) {
 			fmt.Printf("📂 Dosya Türü: %s\n", result.DosyaTuru)
 		}
 		if result.Mahkeme != "" {
-			fmt.Printf("⚖️  Mahkeme: %s\n", result.Mahkeme)
+			fmt.Printf("⚖️ Mahkeme: %s\n", result.Mahkeme)
 		}
 
 		fmt.Println(strings.Repeat("─", 60))
@@ -540,7 +540,7 @@ func printResult(domain string, result QueryResult, durationMs int64) {
 	} else {
 		fmt.Println("✅ Durum: ERİŞİLEBİLİR")
 		fmt.Println(strings.Repeat("─", 60))
-		fmt.Println("ℹ️  Bu site hakkında herhangi bir engel kararı bulunmamaktadır.")
+		fmt.Println("ℹ️ Bu site hakkında herhangi bir engel kararı bulunmamaktadır.")
 	}
 
 	fmt.Println(strings.Repeat("═", 60))
@@ -766,7 +766,7 @@ func main() {
 		if isValidDomain(d) {
 			validDomains = append(validDomains, d)
 		} else {
-			log("⚠️  Geçersiz domain atlandı: %s", d)
+			log("⚠️ Geçersiz domain atlandı: %s", d)
 		}
 	}
 
