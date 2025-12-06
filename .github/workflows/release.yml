@@ -91,6 +91,13 @@ jobs:
           echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
 
+      - name: Update version in README
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.version.outputs.bump_type != 'none'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/BTK Site Sorgulama Aracı v[0-9]\+\.[0-9]\+\.[0-9]\+/BTK Site Sorgulama Aracı v$VERSION/g" README.md
+          echo "README.md updated to v$VERSION"
+
       - name: Build for all platforms
         run: |
           mkdir -p dist
@@ -184,3 +191,12 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit version update
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.tag_check.outputs.exists == 'false'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          git diff --staged --quiet || git commit -m "📝 docs: update version to v${{ steps.version.outputs.version }} [skip ci]"
+          git push
