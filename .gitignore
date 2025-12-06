@@ -5,3 +5,4 @@ btk-sorgu.exe
 btk-sorgu
 *.exe~
 *~
+dist/
