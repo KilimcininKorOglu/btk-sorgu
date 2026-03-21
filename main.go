@@ -18,7 +18,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
@@ -266,15 +265,7 @@ func getCaptcha() ([]byte, error) {
 		return nil, fmt.Errorf("CAPTCHA indirilemedi: HTTP %d", resp.StatusCode)
 	}
 
-	var reader io.Reader = resp.Body
-	if resp.Header.Get("Content-Encoding") == "gzip" {
-		reader, err = gzip.NewReader(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	imageData, err := io.ReadAll(reader)
+	imageData, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
