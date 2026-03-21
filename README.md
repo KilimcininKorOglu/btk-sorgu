@@ -1,4 +1,4 @@
-# BTK Site Sorgulama Aracı v3.0.2
+# BTK Site Sorgulama Aracı v3.0.3
 
 Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfası](https://internet.btk.gov.tr/sitesorgu) üzerinden otomatik olarak sorgulayan Go aracı.
 
