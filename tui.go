@@ -313,6 +313,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case queryErrorMsg:
 		m.state = stateResult
 		m.err = msg.err
+		m.refreshingIdx = -1
 		m.lastQueriedIdx = -1
 	}
 
