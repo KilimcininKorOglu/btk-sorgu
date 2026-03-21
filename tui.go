@@ -204,8 +204,12 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c":
 			if m.state != stateQuerying {
+				return m, tea.Quit
+			}
+		case "q":
+			if m.state == stateHistory || m.state == stateResult {
 				return m, tea.Quit
 			}
 		case "ctrl+d":
