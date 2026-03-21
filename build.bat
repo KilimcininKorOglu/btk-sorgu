@@ -1,94 +1,98 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo ========================================
-echo   BTK Sorgu - Build Script (Windows)
-echo ========================================
-echo.
+set BINARY_NAME=btk-sorgu
+set BUILD_DIR=bin
+set DIST_DIR=dist
 
-:: Get version from main.go
-for /f "tokens=4 delims= " %%a in ('findstr /C:"const Version" main.go') do (
-    set VERSION=%%~a
-)
-set VERSION=%VERSION:"=%
-echo Version: %VERSION%
-echo.
+:: Get version info
+for /f "tokens=*" %%i in ('git describe --tags --always --dirty 2^>nul') do set VERSION=%%i
+if not defined VERSION set VERSION=0.0.0
 
-:: Create dist directory
-if not exist dist mkdir dist
+for /f "tokens=*" %%i in ('git rev-parse --short HEAD 2^>nul') do set COMMIT=%%i
+if not defined COMMIT set COMMIT=unknown
 
-echo Building for all platforms...
-echo.
+set LDFLAGS=-s -w -X 'main.Version=%VERSION%'
 
-:: Windows AMD64
-echo [1/6] Windows AMD64...
-set GOOS=windows
-set GOARCH=amd64
-go build -ldflags="-s -w" -o dist\btk-sorgu-windows-amd64.exe .
-if %errorlevel% neq 0 goto :error
+if "%~1"=="" goto help
+goto %~1
 
-:: Windows ARM64
-echo [2/6] Windows ARM64...
-set GOOS=windows
-set GOARCH=arm64
-go build -ldflags="-s -w" -o dist\btk-sorgu-windows-arm64.exe .
-if %errorlevel% neq 0 goto :error
+:build
+    if not exist %BUILD_DIR% mkdir %BUILD_DIR%
+    go build -ldflags "%LDFLAGS%" -o %BUILD_DIR%\%BINARY_NAME%.exe .
+    goto end
 
-:: Linux AMD64
-echo [3/6] Linux AMD64...
-set GOOS=linux
-set GOARCH=amd64
-go build -ldflags="-s -w" -o dist\btk-sorgu-linux-amd64 .
-if %errorlevel% neq 0 goto :error
+:build-all
+    if not exist %DIST_DIR% mkdir %DIST_DIR%
+    echo Building for all platforms...
+    set GOOS=windows& set GOARCH=amd64& go build -ldflags "%LDFLAGS%" -o %DIST_DIR%\%BINARY_NAME%-windows-amd64.exe .
+    set GOOS=windows& set GOARCH=arm64& go build -ldflags "%LDFLAGS%" -o %DIST_DIR%\%BINARY_NAME%-windows-arm64.exe .
+    set GOOS=linux& set GOARCH=amd64& go build -ldflags "%LDFLAGS%" -o %DIST_DIR%\%BINARY_NAME%-linux-amd64 .
+    set GOOS=linux& set GOARCH=arm64& go build -ldflags "%LDFLAGS%" -o %DIST_DIR%\%BINARY_NAME%-linux-arm64 .
+    set GOOS=darwin& set GOARCH=amd64& go build -ldflags "%LDFLAGS%" -o %DIST_DIR%\%BINARY_NAME%-darwin-amd64 .
+    set GOOS=darwin& set GOARCH=arm64& go build -ldflags "%LDFLAGS%" -o %DIST_DIR%\%BINARY_NAME%-darwin-arm64 .
+    echo Done. Output: %DIST_DIR%\
+    goto end
 
-:: Linux ARM64
-echo [4/6] Linux ARM64...
-set GOOS=linux
-set GOARCH=arm64
-go build -ldflags="-s -w" -o dist\btk-sorgu-linux-arm64 .
-if %errorlevel% neq 0 goto :error
+:clean
+    if exist %BUILD_DIR% rmdir /s /q %BUILD_DIR%
+    if exist %DIST_DIR% rmdir /s /q %DIST_DIR%
+    go clean
+    goto end
 
-:: macOS AMD64
-echo [5/6] macOS AMD64 (Intel)...
-set GOOS=darwin
-set GOARCH=amd64
-go build -ldflags="-s -w" -o dist\btk-sorgu-darwin-amd64 .
-if %errorlevel% neq 0 goto :error
+:test
+    go test ./...
+    goto end
 
-:: macOS ARM64
-echo [6/6] macOS ARM64 (Apple Silicon)...
-set GOOS=darwin
-set GOARCH=arm64
-go build -ldflags="-s -w" -o dist\btk-sorgu-darwin-arm64 .
-if %errorlevel% neq 0 goto :error
+:test-race
+    go test -race ./...
+    goto end
 
-:: Copy .env file if exists
-if exist .env (
-    echo.
-    echo Copying .env file...
-    copy .env dist\.env >nul
-)
+:test-cover
+    go test -cover ./...
+    goto end
 
-:: Copy .env.example if exists
-if exist .env.example (
-    echo Copying .env.example file...
-    copy .env.example dist\.env.example >nul
-)
+:test-verbose
+    go test -v ./...
+    goto end
 
-echo.
-echo ========================================
-echo   Build completed successfully!
-echo ========================================
-echo.
-echo Output files:
-dir /b dist
-echo.
-goto :end
+:bench
+    go test -bench=. -benchmem ./...
+    goto end
 
-:error
-echo.
-echo Build failed with error %errorlevel%
-exit /b %errorlevel%
+:run
+    call :build
+    %BUILD_DIR%\%BINARY_NAME%.exe
+    goto end
+
+:fmt
+    go fmt ./...
+    goto end
+
+:vet
+    go vet ./...
+    goto end
+
+:lint
+    call :fmt
+    call :vet
+    goto end
+
+:help
+    echo Available commands:
+    echo   build        - Build the binary to bin\
+    echo   build-all    - Cross-compile for all platforms to dist\
+    echo   clean        - Remove build artifacts
+    echo   test         - Run all tests
+    echo   test-race    - Run tests with race detector
+    echo   test-cover   - Run tests with coverage
+    echo   test-verbose - Run tests with verbose output
+    echo   bench        - Run benchmarks
+    echo   run          - Build and run (TUI mode)
+    echo   fmt          - Format code
+    echo   vet          - Run go vet
+    echo   lint         - Run fmt and vet
+    goto end
 
 :end
-endlocal
+    endlocal
