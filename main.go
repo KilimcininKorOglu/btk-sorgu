@@ -660,6 +660,7 @@ func querySingleDomain(domain string, apiKey string) QueryResult {
 	// Sonucu parse et
 	result := parseHTML(html)
 	result.Domain = domain
+	result.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	result.QueryDuration = time.Since(startTime).Milliseconds()
 	result.QueryDurationFormatted = formatDuration(result.QueryDuration)
 
