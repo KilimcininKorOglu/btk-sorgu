@@ -19,6 +19,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -818,7 +819,7 @@ func main() {
 				break
 			}
 
-			lastErr = fmt.Errorf(result.Error)
+			lastErr = errors.New(result.Error)
 
 			// CAPTCHA hatası değilse retry yapma
 			if !strings.Contains(result.Error, "CAPTCHA") {
