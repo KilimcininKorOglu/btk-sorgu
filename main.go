@@ -444,6 +444,13 @@ func parseHTML(html string) QueryResult {
 		result.IngilizceAciklama = cleanHTML(match[1])
 	}
 
+	// Beklenen BTK yanıt formatı bulunamadıysa hata döndür
+	if result.TurkceAciklama == "" && result.IngilizceAciklama == "" {
+		result.Status = false
+		result.Error = "BTK yanıtı tanınamadı, beklenmeyen sayfa formatı"
+		return result
+	}
+
 	// Engel durumu kontrolü
 	if result.TurkceAciklama != "" && strings.Contains(result.TurkceAciklama, "engellenmiştir") {
 		result.EngelliMi = true
