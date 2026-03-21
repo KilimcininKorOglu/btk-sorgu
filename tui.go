@@ -273,6 +273,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = stateInput
 				m.textInput.Focus()
 				m.inputFocused = true
+				m.err = nil
 				return m, textinput.Blink
 			} else if m.state == stateHistory {
 				m.state = stateInput
