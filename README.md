@@ -21,7 +21,7 @@ Türkiye'de erişime engellenen web sitelerini [BTK Site Bilgileri Sorgu Sayfas�
 
 ### Gereksinimler
 
-- Go 1.21+ (derleme için) veya hazır binary
+- Go 1.24+ (derleme için) veya hazır binary
 - Google Gemini API anahtarı (**zorunlu**)
 
 ### 1. Dosyaları İndir
@@ -34,11 +34,14 @@ cd btk-sorgu
 ### 2. Derle
 
 ```bash
-# Windows
-go build -o btk-sorgu.exe .
+# Linux/macOS (make ile)
+make build
 
-# Linux/macOS
-go build -o btk-sorgu .
+# Windows (build.bat ile)
+build.bat build
+
+# Tum platformlar icin cross-compile
+make build-all
 ```
 
 ### 3. Gemini API Anahtarı Al
@@ -83,11 +86,11 @@ export GEMINI_API_KEY=AIzaSy...your_api_key_here
 
 ### Ortam Değişkenleri
 
-| Değişken | Zorunlu | Varsayılan | Açıklama |
-|----------|---------|------------|----------|
-| `GEMINI_API_KEY` | Evet | - | Google Gemini API anahtarı |
-| `GEMINI_MODEL` | Hayır | `gemini-2.5-flash` | Kullanılacak Gemini modeli |
-| `USER_AGENT` | Hayır | Chrome 120 | Özel User-Agent string |
+| Değişken         | Zorunlu | Varsayılan         | Açıklama                   |
+|------------------|---------|--------------------|----------------------------|
+| `GEMINI_API_KEY` | Evet    | -                  | Google Gemini API anahtarı |
+| `GEMINI_MODEL`   | Hayır   | `gemini-2.5-flash` | Kullanılacak Gemini modeli |
+| `USER_AGENT`     | Hayır   | Chrome 120         | Özel User-Agent string     |
 
 ---
 
@@ -109,7 +112,8 @@ btk-sorgu --tui      # TUI modu (açık)
 - `↑↓` - Geçmiş tablosunda gezinme
 - `Ctrl+D` - Geçmişi temizle
 - `Esc` - Giriş ekranına dön
-- `Q` / `Ctrl+C` - Çıkış
+- `Q` - Çıkış (geçmiş ve sonuç ekranında)
+- `Ctrl+C` - Çıkış (her ekranda)
 
 ### CLI Modu
 
@@ -141,14 +145,14 @@ btk-sorgu --help
 
 ## Komut Satırı Seçenekleri
 
-| Seçenek | Açıklama |
-|---------|----------|
-| *(argüman yok)* | TUI modunda çalıştır (varsayılan) |
-| `--tui` | TUI modunda çalıştır (açık) |
-| `--liste <dosya>` | Dosyadan site listesi oku (CLI modu) |
-| `--json` | JSON formatında çıktı (temiz, progress yok) |
-| `--version`, `-v` | Versiyon bilgisini göster |
-| `--help`, `-h` | Yardım mesajını göster |
+| Seçenek           | Açıklama                                    |
+|-------------------|---------------------------------------------|
+| *(argüman yok)*   | TUI modunda çalıştır (varsayılan)           |
+| `--tui`           | TUI modunda çalıştır (açık)                 |
+| `--liste <dosya>` | Dosyadan site listesi oku (CLI modu)        |
+| `--json`          | JSON formatında çıktı (temiz, progress yok) |
+| `--version`, `-v` | Versiyon bilgisini göster                   |
+| `--help`, `-h`    | Yardım mesajını göster                      |
 
 ---
 
@@ -264,16 +268,18 @@ google.com
 
 ```
 btk-sorgu/
-├── main.go           # Ana CLI mantığı, HTTP client, Gemini API
-├── tui.go            # Terminal UI (Bubble Tea)
-├── go.mod            # Go modülü
-├── go.sum            # Bağımlılıklar
-├── build.bat         # Windows cross-compile script
-├── build.sh          # Linux/macOS cross-compile script
-├── .env              # API anahtarları (oluşturulmalı)
-├── .env.example      # Örnek .env
-├── history.json      # TUI sorgu geçmişi (otomatik)
-├── .github/workflows # GitHub Actions CI/CD
+├── main.go            # Ana CLI mantığı, HTTP client, Gemini API
+├── tui.go             # Terminal UI (Bubble Tea)
+├── go.mod             # Go modülü
+├── go.sum             # Bağımlılıklar
+├── Makefile           # Build, test, lint hedefleri
+├── build.bat          # Windows build script
+├── .goreleaser.yml    # GoReleaser yapilandirmasi
+├── CHANGELOG.md       # Sürüm değişiklik günlüğü
+├── .env               # API anahtarları (oluşturulmalı)
+├── .env.example       # Örnek .env
+├── history.json       # TUI sorgu geçmişi (otomatik)
+├── .github/workflows  # GitHub Actions CI/CD
 └── README.md
 ```
 
