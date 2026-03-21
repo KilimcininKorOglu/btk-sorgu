@@ -162,6 +162,10 @@ func loadEnvFile() {
 			os.Setenv(key, value)
 		}
 	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "Uyarı: .env dosyası tam okunamadı: %v\n", err)
+	}
 }
 
 // log JSON modunda sessiz, normal modda yazdırır
