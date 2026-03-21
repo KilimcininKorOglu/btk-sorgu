@@ -219,7 +219,9 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if (m.state == stateInput || m.state == stateHistory) && len(m.results) > 0 {
 				m.results = []QueryResult{}
 				m.updateTable()
-				saveHistory(m.results)
+				if err := saveHistory(m.results); err != nil {
+					m.err = err
+				}
 				m.state = stateInput
 				m.inputFocused = true
 			}
@@ -308,7 +310,9 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.refreshingIdx = -1
 		m.updateTable()
-		saveHistory(m.results)
+		if err := saveHistory(m.results); err != nil {
+			m.err = err
+		}
 
 	case queryErrorMsg:
 		m.state = stateResult
