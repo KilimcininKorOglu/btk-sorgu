@@ -6,3 +6,4 @@ btk-sorgu
 *.exe~
 *~
 dist/
+bin/
