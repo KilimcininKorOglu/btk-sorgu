@@ -36,7 +36,7 @@ import (
 
 // Version bilgisi
 // Version is set via -ldflags at build time, defaults to "3.0.0"
-var Version = "3.0.0"
+var Version = "3.0.2"
 
 // Config yapılandırma sabitleri
 type Config struct {
