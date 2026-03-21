@@ -117,6 +117,7 @@ type tuiModel struct {
 	apiKey         string
 	queryDomain    string
 	refreshingIdx  int  // Güncellenen sorgunun index'i (-1 = yeni sorgu)
+	lastQueriedIdx int  // Son sorgulanan sonucun index'i (-1 = yok)
 	inputFocused   bool // Input mu yoksa tablo mu odaklı
 }
 
@@ -184,8 +185,9 @@ func newTUIModel(apiKey string) tuiModel {
 		table:         t,
 		results:       history,
 		apiKey:        apiKey,
-		refreshingIdx: -1,
-		inputFocused:  true,
+		refreshingIdx:  -1,
+		lastQueriedIdx: -1,
+		inputFocused:   true,
 	}
 
 	// Tablo'yu geçmiş verilerle güncelle
@@ -297,20 +299,20 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case queryResultMsg:
 		m.state = stateResult
 		if m.refreshingIdx >= 0 && m.refreshingIdx < len(m.results) {
-			// Mevcut kaydı güncelle
 			m.results[m.refreshingIdx] = msg.result
+			m.lastQueriedIdx = m.refreshingIdx
 		} else {
-			// Yeni kayıt ekle
 			m.results = append(m.results, msg.result)
+			m.lastQueriedIdx = len(m.results) - 1
 		}
 		m.refreshingIdx = -1
 		m.updateTable()
-		// Geçmişi kaydet
 		saveHistory(m.results)
 
 	case queryErrorMsg:
 		m.state = stateResult
 		m.err = msg.err
+		m.lastQueriedIdx = -1
 	}
 
 	// Input güncellemesi
@@ -415,8 +417,8 @@ func (m tuiModel) View() string {
 	case stateResult:
 		if m.err != nil {
 			s.WriteString(errorStyle.Render("❌ Hata: "+m.err.Error()) + "\n")
-		} else if len(m.results) > 0 {
-			lastResult := m.results[len(m.results)-1]
+		} else if m.lastQueriedIdx >= 0 && m.lastQueriedIdx < len(m.results) {
+			lastResult := m.results[m.lastQueriedIdx]
 
 			// Son sonuç detayları
 			var detail strings.Builder
