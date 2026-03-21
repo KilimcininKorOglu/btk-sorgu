@@ -226,6 +226,7 @@ func getSessionCookies() error {
 		return fmt.Errorf("session başlatılamadı: %v", err)
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("session başlatılamadı: HTTP %d", resp.StatusCode)
